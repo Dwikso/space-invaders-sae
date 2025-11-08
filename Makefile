@@ -1,7 +1,7 @@
 # Compilateur et flags
 CC = gcc
-CFLAGS = -Wall -Wextra -g `pkg-config --cflags sdl3`
-LDFLAGS = `pkg-config --libs sdl3` -lm
+CFLAGS = -Wall -Wextra -g `pkg-config --cflags sdl3` `pkg-config --cflags SDL3_image`
+LDFLAGS = `pkg-config --libs sdl3` `pkg-config --libs SDL3_image` -lm
 
 # Nom de l'exécutable
 TARGET = space-invaders
