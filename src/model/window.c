@@ -148,7 +148,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
                          (laser_pos < dst_rect.y + dst_rect.h);
 
       if (collision_x && collision_y) {
-        printf("Touché\n");
+        printf("alien Touché\n");
 
         show_point = false;
       }
