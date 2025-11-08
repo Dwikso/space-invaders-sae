@@ -1,4 +1,5 @@
 #include <SDL3/SDL_keyboard.h>
+#include <SDL3/SDL_render.h>
 #include <SDL3/SDL_scancode.h>
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
@@ -14,12 +15,15 @@ static int texture_width = 0;
 static int texture_height = 0;
 static int texture_player_width = 0;
 static int texture_player_height = 0;
+static bool show_point = false;
 
 static float player_y = 0;
+static float laser_pos = 0;
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGHT 480
 #define PLAYER_SPEED 0.2f
+#define LASER_SPEED 0.3f
 
 SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[]) {
   (void)appstate;
@@ -108,7 +112,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     player_y += PLAYER_SPEED;
   }
 
-  // Limiter le joueur dans l'écran
   if (player_y < 0) {
     player_y = 0;
   }
@@ -116,11 +119,22 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     player_y = WINDOW_WIDTH - texture_player_width;
   }
 
-  // Effacer l'écran
+  if (key_states[SDL_SCANCODE_SPACE] && !show_point) {
+    show_point = true;
+    laser_pos = WINDOW_HEIGHT - texture_player_height -
+                20; // Position de départ du laser
+  }
+
+  if (show_point) {
+    laser_pos -= LASER_SPEED;
+    if (laser_pos < 0) {
+      show_point = false;
+    }
+  }
+
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(renderer);
 
-  // Dessiner les invaders
   for (int i = 0; i < 10; i++) {
     SDL_FRect dst_rect;
     dst_rect.x = 50 + (i * 60);
@@ -130,7 +144,6 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     SDL_RenderTexture(renderer, texture, NULL, &dst_rect);
   }
 
-  // Dessiner le joueur
   SDL_FRect dst_rect_player;
   dst_rect_player.x = player_y;
   dst_rect_player.y = WINDOW_HEIGHT - texture_player_height - 20;
@@ -138,12 +151,21 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   dst_rect_player.h = texture_player_height;
   SDL_RenderTexture(renderer, texture_player, NULL, &dst_rect_player);
 
-  // Afficher le rendu
+  if (show_point) {
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
+    SDL_FRect point_rect;
+    point_rect.x =
+        player_y + (texture_player_width / 2) - 2; // Centré sur le joueur
+    point_rect.y = laser_pos;
+    point_rect.w = 4;  // Largeur du laser
+    point_rect.h = 15; // Hauteur du laser
+    SDL_RenderFillRect(renderer, &point_rect);
+  }
+
   SDL_RenderPresent(renderer);
 
   return SDL_APP_CONTINUE;
 }
-
 void SDL_AppQuit(void *appstate, SDL_AppResult result) {
   (void)appstate;
   (void)result;
