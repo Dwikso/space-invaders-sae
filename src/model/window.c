@@ -1,3 +1,5 @@
+#include <SDL3/SDL_render.h>
+#include <stdbool.h>
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -13,6 +15,8 @@ static int texture_height = 0;
 static int texture_player_width = 0;
 static int texture_player_height = 0;
 static bool show_point = false;
+static bool aliens_alive[10] = {true, true, true, true, true, true,
+                                true, true, true, true, true};
 
 static float player_y = 0;
 static float laser_pos = 0;
@@ -134,23 +138,24 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   float laser_x = player_y + (texture_player_width / 2) - 2;
 
   for (int i = 0; i < 10; i++) {
-    SDL_FRect dst_rect;
-    dst_rect.x = 50 + (i * 60);
-    dst_rect.y = 200;
-    dst_rect.w = texture_width;
-    dst_rect.h = texture_height;
-    SDL_RenderTexture(renderer, texture, NULL, &dst_rect);
+    if (aliens_alive[i]) {
+      SDL_FRect dst_rect;
+      dst_rect.x = 50 + (i * 60);
+      dst_rect.y = 200;
+      dst_rect.w = texture_width;
+      dst_rect.h = texture_height;
+      SDL_RenderTexture(renderer, texture, NULL, &dst_rect);
+      if (show_point) {
+        bool collision_x =
+            (laser_x + 4 > dst_rect.x) && (laser_x < dst_rect.x + dst_rect.w);
+        bool collision_y = (laser_pos + 15 > dst_rect.y) &&
+                           (laser_pos < dst_rect.y + dst_rect.h);
 
-    if (show_point) {
-      bool collision_x =
-          (laser_x + 4 > dst_rect.x) && (laser_x < dst_rect.x + dst_rect.w);
-      bool collision_y = (laser_pos + 15 > dst_rect.y) &&
-                         (laser_pos < dst_rect.y + dst_rect.h);
-
-      if (collision_x && collision_y) {
-        printf("alien Touché\n");
-
-        show_point = false;
+        if (collision_x && collision_y) {
+          printf("alien Touché\n");
+          aliens_alive[i] = false;
+          show_point = false;
+        }
       }
     }
   }
