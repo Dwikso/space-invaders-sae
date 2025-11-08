@@ -1,6 +1,3 @@
-#include <SDL3/SDL_keyboard.h>
-#include <SDL3/SDL_render.h>
-#include <SDL3/SDL_scancode.h>
 #define SDL_MAIN_USE_CALLBACKS 1
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
@@ -121,8 +118,7 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
 
   if (key_states[SDL_SCANCODE_SPACE] && !show_point) {
     show_point = true;
-    laser_pos = WINDOW_HEIGHT - texture_player_height -
-                20; // Position de départ du laser
+    laser_pos = WINDOW_HEIGHT - texture_player_height - 20;
   }
 
   if (show_point) {
@@ -135,6 +131,8 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   SDL_SetRenderDrawColor(renderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
   SDL_RenderClear(renderer);
 
+  float laser_x = player_y + (texture_player_width / 2) - 2;
+
   for (int i = 0; i < 10; i++) {
     SDL_FRect dst_rect;
     dst_rect.x = 50 + (i * 60);
@@ -142,6 +140,19 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
     dst_rect.w = texture_width;
     dst_rect.h = texture_height;
     SDL_RenderTexture(renderer, texture, NULL, &dst_rect);
+
+    if (show_point) {
+      bool collision_x =
+          (laser_x + 4 > dst_rect.x) && (laser_x < dst_rect.x + dst_rect.w);
+      bool collision_y = (laser_pos + 15 > dst_rect.y) &&
+                         (laser_pos < dst_rect.y + dst_rect.h);
+
+      if (collision_x && collision_y) {
+        printf("Touché\n");
+
+        show_point = false;
+      }
+    }
   }
 
   SDL_FRect dst_rect_player;
@@ -154,11 +165,10 @@ SDL_AppResult SDL_AppIterate(void *appstate) {
   if (show_point) {
     SDL_SetRenderDrawColor(renderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
     SDL_FRect point_rect;
-    point_rect.x =
-        player_y + (texture_player_width / 2) - 2; // Centré sur le joueur
+    point_rect.x = player_y + (texture_player_width / 2) - 2;
     point_rect.y = laser_pos;
-    point_rect.w = 4;  // Largeur du laser
-    point_rect.h = 15; // Hauteur du laser
+    point_rect.w = 4;
+    point_rect.h = 15;
     SDL_RenderFillRect(renderer, &point_rect);
   }
 
