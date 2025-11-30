@@ -141,7 +141,6 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     // Gestion du mouvement (Input instantané)
     // Note : Dans un vrai jeu, on gérerait mieux les key_up / key_down
     // Ici on simplifie : si on reçoit la commande, on bouge
-    const float move_amount = 2.0f; // Sensibilité clavier
 
     switch (cmd)
     {
@@ -276,6 +275,67 @@ void model_update(GameModel *model, double dt)
                 }
             }
         }
-        // TODO: Ajouter collision Balle Ennemi vs Joueur ici
+
+        // ... (Code de déplacement des ennemis existant) ...
+
+        // --- 2b. Tirs des Ennemis (Nouveau !) ---
+        // Logique : On tire aléatoirement, mais pas trop souvent.
+        // Plus le niveau est haut, plus ils tirent.
+
+        // Probabilité de tir par frame (ajustez 1000 selon la difficulté voulue)
+        // Si rand() % 1000 < (level * 5), alors un ennemi tire.
+        int fire_chance = 100; // 1 chance sur 100 par frame (à 60FPS -> ~0.6 tir/sec)
+
+        if (utils_random_int(0, fire_chance) < model->level)
+        {
+            // Trouver un ennemi vivant au hasard qui peut tirer
+            // (Méthode naïve : on essaie 10 fois de trouver un tireur valide)
+            for (int attempts = 0; attempts < 10; attempts++)
+            {
+                int random_idx = utils_random_int(0, MAX_ENEMIES - 1);
+                if (model->enemies[random_idx].active)
+                {
+                    Entity *e = &model->enemies[random_idx];
+
+                    // Tirer vers le bas (dy positif)
+                    // Vitesse = BULLET_SPEED / 1.5 (un peu moins vite que le joueur)
+                    spawn_bullet(model,
+                                 e->x + e->width / 2,
+                                 e->y + e->height,
+                                 BULLET_SPEED * 0.6f,
+                                 ENTITY_BULLET_ENEMY);
+                    break; // Un seul tir à la fois
+                }
+            }
+        }
+
+        // --- 3. Mise à jour Balles ---
+        // ...// ... (Dans la boucle for des balles)
+
+        // Collisions
+        if (b->type == ENTITY_BULLET_PLAYER)
+        {
+            // (Code existant collision vs Ennemis)
+        }
+        else if (b->type == ENTITY_BULLET_ENEMY)
+        {
+            // Contre Joueur
+            if (check_collision(b, &model->player))
+            {
+                b->active = false; // Balle détruite
+                model->lives--;    // Perte de vie
+
+                // Réinitialiser position joueur ou Game Over
+                if (model->lives <= 0)
+                {
+                    model->state = STATE_GAME_OVER;
+                }
+                else
+                {
+                    // Petit reset position (optionnel)
+                    model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
+                }
+            }
+        }
     }
 }

@@ -13,12 +13,11 @@ CC = gcc
 # -Wextra    : Avertissements supplémentaires
 # -g         : Ajoute les infos de débogage (indispensable pour Valgrind/GDB)
 # -Iinclude  : Indique où trouver les fichiers .h
-CFLAGS = -std=c99 -Wall -Wextra -g -Iinclude
-
+CFLAGS = -std=c99 -Wall -Wextra -g -Iinclude -Iexternal/SDL3/include -Iexternal/SDL3_image/include 
 # Détection des drapeaux pour SDL3 via pkg-config
 # (Assurez-vous d'avoir installé libsdl3-dev)
 SDL_CFLAGS := $(shell pkg-config --cflags sdl3) 
-SDL_LIBS   := $(shell pkg-config --libs sdl3) -lSDL2_image -lSDL2_mixer
+SDL_LIBS   := $(shell pkg-config --libs sdl3) -lSDL3_image 
 
 # Bibliothèques à lier (Linker flags)
 # -lm        : Bibliothèque mathématique standard
