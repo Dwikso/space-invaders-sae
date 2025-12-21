@@ -57,6 +57,7 @@ static struct
     SDL_Texture *tex_bg_game; // Fond du jeu
     SDL_Texture *tex_heart_full;
     SDL_Texture *tex_heart_empty;
+    SDL_Texture *blur_texture;
 } ctx = {0};
 // --- Fonctions Utilitaires ---
 
@@ -411,41 +412,76 @@ static void sdl_render(const GameModel *model)
 
     // 5. Game Over
     if (model->state == STATE_GAME_OVER)
+{
+    // 1. GÉNÉRATION DU FLOU (une seule fois au moment du Game Over)
+    if (ctx.blur_texture == NULL)
     {
-        // Titre "GAME OVER"
-        SDL_Color red = {255, 0, 0, 255};
-        draw_text_centered("GAME OVER", WIN_HEIGHT / 2 - 80, red, ctx.font_title);
+        // Création d'une texture 8x plus petite que la fenêtre
+        ctx.blur_texture = SDL_CreateTexture(ctx.renderer, SDL_PIXELFORMAT_RGBA8888, 
+                                            SDL_TEXTUREACCESS_TARGET, 
+                                            WIN_WIDTH / 8, WIN_HEIGHT / 8);
+        
+        if (ctx.blur_texture) {
+            // Activer le filtrage linéaire pour l'effet de flou lors du redimensionnement
+            SDL_SetTextureScaleMode(ctx.blur_texture, SDL_SCALEMODE_LINEAR);
 
-        // Score
-        char score_final[32];
-        SDL_Color white = {255, 255, 255, 255};
-        snprintf(score_final, sizeof(score_final), "Score Final: %d", model->score);
-        draw_text_centered(score_final, WIN_HEIGHT / 2 - 10, white, ctx.font);
-
-        // --- MENU REJOUER / QUITTER ---
-        const char *go_options[] = {"REJOUER", "QUITTER"};
-        SDL_Color col_sel = {255, 255, 255, 255};  // Blanc
-        SDL_Color col_norm = {100, 100, 100, 255}; // Gris
-
-        for (int i = 0; i < 2; i++)
-        {
-            char buffer[64];
-            SDL_Color c;
-            int y_pos = (WIN_HEIGHT / 2) + 60 + (i * 50);
-
-            if (i == model->menu_selection)
-            {
-                snprintf(buffer, sizeof(buffer), "> %s <", go_options[i]);
-                c = col_sel;
-            }
-            else
-            {
-                snprintf(buffer, sizeof(buffer), "%s", go_options[i]);
-                c = col_norm;
-            }
-            draw_text_centered(buffer, y_pos, c, ctx.font);
+            // Rediriger le rendu vers la texture de flou
+            SDL_SetRenderTarget(ctx.renderer, ctx.blur_texture);
+            
+            // DESSINER ICI LE MONDE DU JEU (sans l'UI de Game Over)
+            // Exemple : draw_game_world(model, &ctx); 
+            
+            // Revenir au rendu principal (l'écran)
+            SDL_SetRenderTarget(ctx.renderer, NULL);
         }
     }
+
+    // 2. AFFICHAGE DU FLOU
+    if (ctx.blur_texture) {
+        // On dessine la petite texture sur tout l'écran (SDL3 gère l'étirement flou)
+        SDL_RenderTexture(ctx.renderer, ctx.blur_texture, NULL, NULL);
+    }
+
+    // 3. VOILE SOMBRE (Overlay)
+    // Pour que le texte ressorte bien sur le flou
+    SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+    SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 160); // Noir à 60% d'opacité
+    SDL_RenderFillRect(ctx.renderer, NULL);
+
+    // 4. TITRE "GAME OVER"
+    SDL_Color red = {255, 0, 0, 255};
+    draw_text_centered("GAME OVER", WIN_HEIGHT / 2 - 80, red, ctx.font_title);
+
+    // 5. SCORE
+    char score_final[32];
+    SDL_Color white = {255, 255, 255, 255};
+    snprintf(score_final, sizeof(score_final), "Score Final: %d", model->score);
+    draw_text_centered(score_final, WIN_HEIGHT / 2 - 10, white, ctx.font);
+
+    // 6. MENU REJOUER / QUITTER
+    const char *go_options[] = {"REJOUER", "QUITTER"};
+    SDL_Color col_sel = {255, 255, 255, 255};
+    SDL_Color col_norm = {150, 150, 150, 255};
+
+    for (int i = 0; i < 2; i++)
+    {
+        char buffer[64];
+        SDL_Color c;
+        int y_pos = (WIN_HEIGHT / 2) + 60 + (i * 50);
+
+        if (i == model->menu_selection)
+        {
+            snprintf(buffer, sizeof(buffer), "> %s <", go_options[i]);
+            c = col_sel;
+        }
+        else
+        {
+            snprintf(buffer, sizeof(buffer), "%s", go_options[i]);
+            c = col_norm;
+        }
+        draw_text_centered(buffer, y_pos, c, ctx.font);
+    }
+}
 
     SDL_RenderPresent(ctx.renderer);
 }
