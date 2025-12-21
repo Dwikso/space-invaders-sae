@@ -1,6 +1,6 @@
 #include "view_ncurses.h"
 #include <ncurses.h>
-#include <string.h> // Pour strlen
+#include <string.h>
 
 // --- Constantes graphiques ASCII ---
 static const char *SPRITE_PLAYER = "_^_";
@@ -9,17 +9,15 @@ static const char CHAR_BULLET = '|';
 
 // --- Fonctions internes ---
 
-// Initialisation de Ncurses
 static bool ncurses_init(void)
 {
-    initscr();             // Démarre le mode ncurses
-    cbreak();              // Pas besoin d'appuyer sur Entrée
-    noecho();              // Ne pas afficher les touches pressées
-    keypad(stdscr, TRUE);  // Active les flèches directionnelles
-    curs_set(0);           // Cache le curseur clignotant
-    nodelay(stdscr, TRUE); // getch() ne bloque pas le programme (essentiel !)
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, TRUE);
+    curs_set(0);
+    nodelay(stdscr, TRUE);
 
-    // Gestion des couleurs
     if (has_colors())
     {
         start_color();
@@ -33,16 +31,14 @@ static bool ncurses_init(void)
 
 static void ncurses_close(void)
 {
-    endwin(); // Restaure le terminal normal
+    endwin();
 }
 
-// Fonction de rendu principale
 static void ncurses_render(const GameModel *model)
 {
-    erase(); // Efface l'écran à chaque frame
+    erase();
 
-    // 1. Dessiner le cadre de jeu (délimitation visuelle)
-    // On dessine un cadre autour de la zone 0,0 -> GAME_WIDTH, GAME_HEIGHT
+    // 1. Dessiner le cadre
     attron(COLOR_PAIR(4));
     mvhline(0, 0, '#', GAME_WIDTH + 2);
     mvhline(GAME_HEIGHT + 1, 0, '#', GAME_WIDTH + 2);
@@ -52,11 +48,33 @@ static void ncurses_render(const GameModel *model)
     // Infos UI
     mvprintw(0, 2, " SCORE: %d | VIES: %d | NIVEAU: %d ", model->score, model->lives, model->level);
 
+    // --- AFFICHAGE DU MENU ---
     if (model->state == STATE_MENU)
     {
-        mvprintw(GAME_HEIGHT / 2, GAME_WIDTH / 2 - 10, "SPACE INVADERS");
-        mvprintw(GAME_HEIGHT / 2 + 1, GAME_WIDTH / 2 - 14, "Appuyez sur ESPACE pour tirer/jouer");
-        mvprintw(GAME_HEIGHT / 2 + 2, GAME_WIDTH / 2 - 14, "Appuyez sur Q pour quitter");
+        attron(A_BOLD);
+        mvprintw(GAME_HEIGHT / 2 - 4, GAME_WIDTH / 2 - 10, "=== SPACE INVADERS ===");
+        attroff(A_BOLD);
+
+        const char *options[] = {"   JOUER   ", "  CHARGER  ", "  QUITTER  "};
+
+        for (int i = 0; i < 3; i++)
+        {
+            int y = GAME_HEIGHT / 2 - 1 + (i * 2);
+            int x = GAME_WIDTH / 2 - 6;
+
+            if (i == model->menu_selection)
+            {
+                attron(A_REVERSE); // Surlignage
+                mvprintw(y, x, "> %s <", options[i]);
+                attroff(A_REVERSE);
+            }
+            else
+            {
+                mvprintw(y, x, "  %s  ", options[i]);
+            }
+        }
+
+        mvprintw(GAME_HEIGHT - 2, 2, "Fleches: Naviguer | Espace: Valider");
         attroff(COLOR_PAIR(4));
         refresh();
         return;
@@ -66,6 +84,7 @@ static void ncurses_render(const GameModel *model)
     {
         mvprintw(GAME_HEIGHT / 2, GAME_WIDTH / 2 - 5, "GAME OVER");
         mvprintw(GAME_HEIGHT / 2 + 1, GAME_WIDTH / 2 - 10, "Score Final: %d", model->score);
+        mvprintw(GAME_HEIGHT / 2 + 3, GAME_WIDTH / 2 - 12, "Appuyez sur TIR pour Menu");
         attroff(COLOR_PAIR(4));
         refresh();
         return;
@@ -75,14 +94,13 @@ static void ncurses_render(const GameModel *model)
     // 2. Dessiner le Joueur
     if (model->player.active)
     {
-        attron(COLOR_PAIR(1)); // Vert
-        // On convertit les float du modèle en int pour l'affichage
+        attron(COLOR_PAIR(1));
         mvprintw((int)model->player.y + 1, (int)model->player.x + 1, "%s", SPRITE_PLAYER);
         attroff(COLOR_PAIR(1));
     }
 
     // 3. Dessiner les Ennemis
-    attron(COLOR_PAIR(2)); // Rouge
+    attron(COLOR_PAIR(2));
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
         if (model->enemies[i].active)
@@ -93,7 +111,7 @@ static void ncurses_render(const GameModel *model)
     attroff(COLOR_PAIR(2));
 
     // 4. Dessiner les Balles
-    attron(COLOR_PAIR(3)); // Jaune
+    attron(COLOR_PAIR(3));
     for (int i = 0; i < MAX_BULLETS; i++)
     {
         if (model->bullets[i].active)
@@ -103,13 +121,12 @@ static void ncurses_render(const GameModel *model)
     }
     attroff(COLOR_PAIR(3));
 
-    refresh(); // Applique les changements à l'écran
+    refresh();
 }
 
-// Gestion des entrées Clavier -> Commandes de Jeu
 static GameCommand ncurses_get_input(void)
 {
-    int ch = getch(); // Lecture non bloquante
+    int ch = getch();
 
     switch (ch)
     {
@@ -117,8 +134,14 @@ static GameCommand ncurses_get_input(void)
         return CMD_MOVE_LEFT;
     case KEY_RIGHT:
         return CMD_MOVE_RIGHT;
+    case KEY_UP:
+        return CMD_UP; // <--- Menu Haut
+    case KEY_DOWN:
+        return CMD_DOWN; // <--- Menu Bas
     case ' ':
-        return CMD_SHOOT;
+        return CMD_SHOOT; // <--- Valider / Tirer
+    case '\n':
+        return CMD_SHOOT; // <--- Entrée valide aussi
     case 'p':
         return CMD_PAUSE;
     case 'q':
@@ -128,8 +151,6 @@ static GameCommand ncurses_get_input(void)
     }
 }
 
-// --- Définition de l'interface publique ---
-// C'est cette structure que le main.c va récupérer
 const ViewInterface view_ncurses = {
     .init = ncurses_init,
     .close = ncurses_close,

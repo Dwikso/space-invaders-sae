@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     double accumulator = 0.0;
     const double dt = 1.0 / TARGET_FPS; // Pas de temps fixe (0.016s)
 
-    while (running && model->state != STATE_GAME_OVER)
+    while (running)
     {
         // A. Gestion du Temps
         double current_time = utils_get_time();

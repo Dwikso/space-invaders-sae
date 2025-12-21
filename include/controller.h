@@ -9,7 +9,10 @@ typedef enum
     CMD_MOVE_RIGHT, // Aller à droite
     CMD_SHOOT,      // Tirer
     CMD_PAUSE,      // Mettre en pause
-    CMD_EXIT        // Quitter le jeu
+    CMD_EXIT,       // Quitter le jeu
+    CMD_UP,
+    CMD_DOWN,
+    CMD_RETURN
 } GameCommand;
 
 #endif // CONTROLLER_H

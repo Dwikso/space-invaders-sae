@@ -9,10 +9,11 @@
 typedef enum
 {
     ENTITY_PLAYER,
-    ENTITY_ENEMY_BASIC,
-    ENTITY_ENEMY_FAST,
     ENTITY_BULLET_PLAYER,
-    ENTITY_BULLET_ENEMY
+    ENTITY_BULLET_ENEMY,
+    ENTITY_ENEMY_TYPE_1, // En bas (10 pts) - "Octopus"
+    ENTITY_ENEMY_TYPE_2, // Milieu (20 pts) - "Crab"
+    ENTITY_ENEMY_TYPE_3  // En haut (40 pts) - "Squid"
 } EntityType;
 
 typedef struct
@@ -46,10 +47,18 @@ typedef struct
     int score;
     int lives;
     int level;
+    int menu_selection;
 
     // Logique interne pour les vagues d'ennemis
     float enemy_speed_mult;
     int direction_enemies; // 1 (droite) ou -1 (gauche)
+    int animation_frame;   // 0 ou 1
+    float animation_timer;
+    // NOUVEAUX CHAMPS POUR LE MOUVEMENT
+    int drop_direction;    // 1 = descend, -1 = monte
+    int drop_step_count;   // Compteur : de 0 à 4
+    float game_over_timer; // <--- AJOUTE CA (Compteur de temps pour le Game Over)
+
 } GameModel;
 
 // --- Fonctions Publiques (API du Modèle) ---
