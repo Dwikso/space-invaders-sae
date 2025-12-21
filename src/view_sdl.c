@@ -1,9 +1,8 @@
 #include "view_sdl.h"
+#include <stdio.h>
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
-#include <stdio.h>
 #include <SDL3_ttf/SDL_ttf.h>
-
 
 // --- Configuration des Ressources ---
 #define WIN_WIDTH 1024
@@ -108,7 +107,8 @@ static bool sdl_init(void)
     }
 
     ctx.font = TTF_OpenFont(FONT_PATH, FONT_SIZE);
-    if (!ctx.font) {
+    if (!ctx.font)
+    {
         fprintf(stderr, "[TTF] Erreur chargement police: %s\n", SDL_GetError());
     }
 
@@ -156,12 +156,17 @@ static void sdl_render(const GameModel *model)
 {
     // --- 1. NETTOYAGE DE L'ÉCRAN ---
     // On choisit la couleur de fond selon l'état
-    if (model->state == STATE_MENU) {
+    if (model->state == STATE_MENU)
+    {
         SDL_SetRenderDrawColor(ctx.renderer, 20, 20, 50, 255); // Bleu nuit
-    } else if (model->state == STATE_GAME_OVER) {
-        SDL_SetRenderDrawColor(ctx.renderer, 50, 0, 0, 255);   // Rouge sombre
-    } else {
-        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255);    // Noir
+    }
+    else if (model->state == STATE_GAME_OVER)
+    {
+        SDL_SetRenderDrawColor(ctx.renderer, 50, 0, 0, 255); // Rouge sombre
+    }
+    else
+    {
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255); // Noir
     }
     SDL_RenderClear(ctx.renderer);
 
@@ -170,12 +175,14 @@ static void sdl_render(const GameModel *model)
     draw_entity(ctx.tex_player, &model->player);
 
     // Les ennemis
-    for (int i = 0; i < MAX_ENEMIES; i++) {
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
         draw_entity(ctx.tex_enemy, &model->enemies[i]);
     }
 
     // Les projectiles
-    for (int i = 0; i < MAX_BULLETS; i++) {
+    for (int i = 0; i < MAX_BULLETS; i++)
+    {
         draw_entity(ctx.tex_bullet, &model->bullets[i]);
     }
 
@@ -199,14 +206,17 @@ static void sdl_render(const GameModel *model)
     draw_text(lives_str, 20, 20, white);
 
     // Messages centraux selon l'état
-    if (model->state == STATE_MENU) {
+    if (model->state == STATE_MENU)
+    {
         draw_text("MENU PRINCIPAL", WIN_WIDTH / 2 - 100, WIN_HEIGHT / 2 - 40, yellow);
         draw_text("ESPACE POUR JOUER", WIN_WIDTH / 2 - 130, WIN_HEIGHT / 2 + 10, white);
-    } 
-    else if (model->state == STATE_PAUSED) {
+    }
+    else if (model->state == STATE_PAUSED)
+    {
         draw_text("PAUSE", WIN_WIDTH / 2 - 40, WIN_HEIGHT / 2, white);
     }
-    else if (model->state == STATE_GAME_OVER) {
+    else if (model->state == STATE_GAME_OVER)
+    {
         draw_text("GAME OVER", WIN_WIDTH / 2 - 70, WIN_HEIGHT / 2 - 20, yellow);
         draw_text("SCORE FINAL: ", WIN_WIDTH / 2 - 80, WIN_HEIGHT / 2 + 20, white);
         draw_text(score_str, WIN_WIDTH / 2 + 60, WIN_HEIGHT / 2 + 20, white);
@@ -258,26 +268,28 @@ static GameCommand sdl_get_input(void)
 
 static void draw_text(const char *text, int x, int y, SDL_Color color)
 {
-    if (!ctx.font || !text || text[0] == '\0') return;
+    if (!ctx.font || !text || text[0] == '\0')
+        return;
 
     // Création de la surface
     SDL_Surface *surface = TTF_RenderText_Blended(ctx.font, text, 0, color);
-    if (!surface) return;
+    if (!surface)
+        return;
 
     // Création de la texture
     SDL_Texture *tex = SDL_CreateTextureFromSurface(ctx.renderer, surface);
-    if (tex) {
+    if (tex)
+    {
         // Définir la zone de destination (on utilise les dimensions de la surface)
-        SDL_FRect dst_rect = { 
-            (float)x, 
-            (float)y, 
-            (float)surface->w, 
-            (float)surface->h 
-        };
+        SDL_FRect dst_rect = {
+            (float)x,
+            (float)y,
+            (float)surface->w,
+            (float)surface->h};
 
         // Dessiner la texture
         SDL_RenderTexture(ctx.renderer, tex, NULL, &dst_rect);
-        
+
         // Nettoyage immédiat pour éviter les fuites mémoire
         SDL_DestroyTexture(tex);
     }
