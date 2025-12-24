@@ -5,39 +5,43 @@
 #include <SDL3_ttf/SDL_ttf.h>
 #include <stdlib.h>
 // --- Configuration des Ressources ---
-#define WIN_WIDTH 1024
+#define WIN_WIDTH 1280
 #define WIN_HEIGHT 768
-
+#define MAX_LIVES_DISPLAY 3 // Combien de coeurs on affiche au total
+#define HEART_UI_SIZE 45    // Taille d'affichage en pixels (carré)
+#define HEART_SPACING 5
 // Chemins vers vos assets
-#define IMG_PLAYER "assets/Sprites/Invaders/space_player.bmp"
+#define IMG_PLAYER "assets/aliens/space_player.bmp"
+
 // Type 1 (En bas)
-#define IMG_ENEMY1_A "assets/Sprites/Invaders/space__0000_A1.bmp"
-#define IMG_ENEMY1_B "assets/Sprites/Invaders/space__0001_A2.bmp"
+#define IMG_ENEMY1_A "assets/aliens/alien_A1.bmp"
+#define IMG_ENEMY1_B "assets/aliens/alien_A2.bmp"
 
 // Type 2 (Milieu)
-#define IMG_ENEMY2_A "assets/Sprites/Invaders/space__0002_B1.bmp"
-#define IMG_ENEMY2_B "assets/Sprites/Invaders/space__0003_B2.bmp"
+#define IMG_ENEMY2_A "assets/aliens/alien_B1.bmp"
+#define IMG_ENEMY2_B "assets/aliens/alien_B2.bmp"
 
 // Type 3 (Haut)
-#define IMG_ENEMY3_A "assets/Sprites/Invaders/space__0004_C1.bmp"
-#define IMG_ENEMY3_B "assets/Sprites/Invaders/space__0005_C2.bmp"
-#define IMG_BULLET "assets/Sprites/Projectiles/missile_1.bmp"
-#define IMG_BG_MENU "assets/bg_menu_1.bmp"
-#define IMG_BG_MENU_1 "assets/bg_menu.bmp"
-
-#define IMG_BG_GAME "assets/background.bmp"
+#define IMG_ENEMY3_A "assets/aliens/alien_C1.bmp"
+#define IMG_ENEMY3_B "assets/aliens/alien_C2.bmp"
+// bullet
+#define IMG_BULLET "assets/Projectiles/missile_1.bmp"
+// Backgrounds
+#define IMG_BG_MENU "assets/backgrounds/bg_menu_1.bmp"
+#define IMG_BG_MENU_1 "assets/backgrounds/bg_menu.bmp"
+#define IMG_BG_GAME "assets/backgrounds/background.bmp"
 // NOUVEAUX CHEMINS POUR LES COEURS
-#define IMG_HEART_FULL "assets/Sprites/heart_full.bmp"
-#define IMG_HEART_EMPTY "assets/Sprites/heart_empty.bmp"
-#define MAX_LIVES_DISPLAY 3 // Combien de coeurs on affiche au total
-#define HEART_UI_SIZE 32    // Taille d'affichage en pixels (carré)
-#define HEART_SPACING 5
+#define IMG_HEART_FULL "assets/hearts/heart_full.bmp"
+#define IMG_HEART_EMPTY "assets/hearts/heart_empty.bmp"
 
+// police et taille de police
 #define FONT_PATH "assets/fonts/LibertinusSerifDisplay-Regular.ttf"
-#define FONT_SIZE 28
-
-#define IMG_EXPLOSION_A "assets/Sprites/explosion/playerExplosionA.bmp"
-#define IMG_EXPLOSION_B "assets/Sprites/explosion/playerExplosionB.bmp"
+#define FONT_SIZE 38
+// image explosion
+#define IMG_EXPLOSION_A "assets/explosions/playerExplosionA.bmp"
+#define IMG_EXPLOSION_B "assets/explosions/playerExplosionB.bmp"
+// UFO
+#define IMG_UFO "assets/aliens/space_UFO.bmp" // Vérifie le chemin exact !
 
 // Facteurs de mise à l'échelle (Model -> Pixels)
 static float SCALE_X = 1.0f;
@@ -67,6 +71,8 @@ static struct
     SDL_Texture *tex_blur; // <--- AJOUTE ÇA
     SDL_Texture *tex_expl_a;
     SDL_Texture *tex_expl_b;
+    SDL_Texture *tex_shields[10];
+    SDL_Texture *tex_ufo; // NOUVEAU
 } ctx = {0};
 // --- Fonctions Utilitaires ---
 
@@ -209,6 +215,24 @@ static bool sdl_init(void)
 
     ctx.tex_expl_a = load_texture(IMG_EXPLOSION_A);
     ctx.tex_expl_b = load_texture(IMG_EXPLOSION_B);
+    ctx.tex_ufo = load_texture(IMG_UFO);
+    if (!ctx.tex_ufo)
+        SDL_Log("Attention: UFO texture manquante !");
+    // A. Charger l'état intact (Index 0)
+    ctx.tex_shields[0] = load_texture("assets/shelter/shelter_full.bmp");
+
+    // B. Charger les dégâts (Index 1 à 9)
+    for (int i = 1; i <= 9; i++)
+    {
+        char path[64];
+        // Construit le nom : shelter_damage_1.bmp, shelter_damage_2.bmp...
+        snprintf(path, sizeof(path), "assets/shelter/shelterDamaged_%d.bmp", i);
+
+        ctx.tex_shields[i] = load_texture(path);
+
+        if (!ctx.tex_shields[i])
+            SDL_Log("Erreur chargement: %s", path);
+    }
     // Petit warning si ça échoue (optionnel)
     if (!ctx.tex_bg_menu || !ctx.tex_bg_game)
     {
@@ -272,7 +296,14 @@ static void sdl_close(void)
         SDL_DestroyTexture(ctx.tex_expl_a);
     if (ctx.tex_expl_b)
         SDL_DestroyTexture(ctx.tex_expl_b);
-
+    if (ctx.tex_ufo)
+        SDL_DestroyTexture(ctx.tex_ufo);
+    // Dans sdl_close :
+    for (int i = 0; i < 10; i++)
+    {
+        if (ctx.tex_shields[i])
+            SDL_DestroyTexture(ctx.tex_shields[i]);
+    }
     SDL_Quit();
 }
 
@@ -295,13 +326,19 @@ static void draw_game_world(const GameModel *model)
     // --- A. FOND (Avec Shake) ---
     if (ctx.tex_bg_game)
     {
-        int w, h;
-        SDL_GetRenderOutputSize(ctx.renderer, &w, &h);
-        // On applique le shake au fond aussi pour un effet plus violent
-        SDL_FRect bg_rect = {(float)shake_x, (float)shake_y, (float)w, (float)h};
+        // ERREUR AVANT : On demandait la taille réelle (SDL_GetRenderOutputSize)
+        // CORRECTION : On utilise la taille LOGIQUE du jeu (GAME_WIDTH, GAME_HEIGHT)
+        // SDL3 fera le calcul d'étirement tout seul comme pour les menus.
+
+        SDL_FRect bg_rect = {
+            (float)shake_x, // Le tremblement
+            (float)shake_y,
+            (float)GAME_WIDTH * 14,  // 1280 (et pas la taille de la fenêtre !)
+            (float)GAME_HEIGHT * 16, // 720
+        };
+
         SDL_RenderTexture(ctx.renderer, ctx.tex_bg_game, NULL, &bg_rect);
     }
-
     // --- B. JOUEUR (Logique d'Explosion) ---
     SDL_Texture *player_tex = ctx.tex_player;
 
@@ -357,6 +394,59 @@ static void draw_game_world(const GameModel *model)
             SDL_SetTextureColorMod(t, 255, 255, 255); // Reset couleur
         }
     }
+    // --- DESSIN DE L'OVNI ---
+    if (model->ufo.active)
+    {
+        SDL_Texture *t = ctx.tex_ufo;
+        // On peut lui donner une couleur spéciale, ex: Magenta flashy
+        SDL_SetTextureColorMod(t, 255, 0, 255);
+
+        // Dessin manuel car UFO n'est pas une struct Entity standard
+        SDL_FRect dst = {
+            (model->ufo.x * SCALE_X) + shake_x,
+            (model->ufo.y * SCALE_Y) + shake_y,
+            model->ufo.width * SCALE_X,
+            model->ufo.height * SCALE_Y};
+        SDL_RenderTexture(ctx.renderer, t, NULL, &dst);
+        SDL_SetTextureColorMod(t, 255, 255, 255); // Reset couleur
+    }
+
+    // --- DESSIN DES BOUCLIERS (Avec Shake si besoin) ---
+    for (int i = 0; i < MAX_SHIELDS; i++)
+    {
+        if (model->shields[i].active)
+        {
+
+            // Calcul de l'index de texture
+            // Ex: Health 10 -> index 0 (Full)
+            // Ex: Health 9  -> index 1 (Damage 1)
+            int tex_index = 10 - model->shields[i].health;
+
+            // Sécurité pour ne pas dépasser le tableau
+            if (tex_index < 0)
+                tex_index = 0;
+            if (tex_index > 9)
+                tex_index = 9;
+
+            SDL_Texture *t = ctx.tex_shields[tex_index];
+
+            // On teinte en vert "Alien" classique (ou blanc si tu préfères)
+            SDL_SetTextureColorMod(t, 0, 255, 0);
+
+            // On utilise ton draw_entity modifié (avec shake_x/shake_y)
+            // Note: draw_entity attend un "Entity*", mais ici on a un "Shield*".
+            // Comme on ne peut pas passer le Shield directement s'il n'est pas "Entity",
+            // on fait le dessin manuellement ici (ou tu peux caster si les structures sont identiques).
+
+            // DESSIN MANUEL RAPIDE :
+            SDL_FRect dst = {
+                (model->shields[i].x * SCALE_X) + shake_x,
+                (model->shields[i].y * SCALE_Y) + shake_y,
+                model->shields[i].width * SCALE_X,
+                model->shields[i].height * SCALE_Y};
+            SDL_RenderTexture(ctx.renderer, t, NULL, &dst);
+        }
+    }
 
     // --- D. BALLES (Avec Shake) ---
     for (int i = 0; i < MAX_BULLETS; i++)
@@ -378,7 +468,7 @@ static void draw_game_world(const GameModel *model)
 static void sdl_render(const GameModel *model)
 {
     // --- JEU & PAUSE ---
-    if (model->state == STATE_PLAYING || model->state == STATE_PAUSED)
+    if (model->state == STATE_PLAYING)
     {
         if (ctx.tex_blur)
         {
@@ -399,14 +489,25 @@ static void sdl_render(const GameModel *model)
         draw_text(hud, 20, 20, white);
 
         // Coeurs
-        int start_x = WIN_WIDTH - (3 * 37) - 20;
-        for (int i = 0; i < 3; i++)
+        int start_x = WIN_WIDTH - 20;
+        int hearts_to_draw = (model->lives > MAX_LIVES_DISPLAY) ? model->lives : MAX_LIVES_DISPLAY;
+
+        for (int i = 0; i < hearts_to_draw; i++)
         {
+            // On décale vers la gauche à chaque coeur
+            int current_x = start_x - ((i + 1) * (HEART_UI_SIZE + HEART_SPACING));
+
             SDL_Texture *hrt = (i < model->lives) ? ctx.tex_heart_full : ctx.tex_heart_empty;
-            SDL_FRect r = {(float)(start_x + i * 37), 20, 32, 32};
+            SDL_FRect r = {(float)current_x, 20, HEART_UI_SIZE, HEART_UI_SIZE};
+
             if (hrt)
             {
-                SDL_SetTextureColorMod(hrt, 255, 255, 255); // Reset couleur
+                // Si c'est une vie bonus (au-delà de 3), on peut la teinter (ex: doré)
+                if (i >= MAX_LIVES_DISPLAY)
+                    SDL_SetTextureColorMod(hrt, 255, 215, 0);
+                else
+                    SDL_SetTextureColorMod(hrt, 255, 255, 255);
+
                 SDL_RenderTexture(ctx.renderer, hrt, NULL, &r);
             }
         }
@@ -414,7 +515,45 @@ static void sdl_render(const GameModel *model)
         SDL_RenderPresent(ctx.renderer);
         return;
     }
+    // --- MENU PAUSE ---
+    // --- MENU PAUSE ---
+    if (model->state == STATE_PAUSED)
+    {
+        // 1. Dessiner le monde du jeu en arrière-plan
+        draw_game_world(model);
 
+        // 2. Appliquer le voile noir semi-transparent (identique au STATE_SAVE_SELECT)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 220); // <-- Changer 150 en 200 pour correspondre
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        // 3. Titre PAUSE
+        SDL_Color yellow = {255, 255, 0, 255};
+        draw_text_centered("PAUSE", (GAME_HEIGHT / 2), yellow, ctx.font_title);
+
+        // 4. Les 3 Options
+        const char *pause_opts[] = {"SAUVEGARDER", "RECOMMENCER", "QUITTER"};
+
+        for (int i = 0; i < 3; i++)
+        {
+            char buf[512];
+            SDL_Color c = (i == model->menu_selection)
+                              ? (SDL_Color){255, 255, 255, 255}
+                              : (SDL_Color){150, 150, 150, 255};
+
+            if (i == model->menu_selection)
+                snprintf(buf, sizeof(buf), "> %s <", pause_opts[i]);
+            else
+                snprintf(buf, sizeof(buf), "%s", pause_opts[i]);
+
+            int y_pos = (GAME_HEIGHT / 2) + ((i + 5) * 60);
+            draw_text_centered(buf, y_pos, c, ctx.font);
+        }
+
+        SDL_RenderPresent(ctx.renderer);
+        return;
+    }
     // --- MENU PRINCIPAL ---
     if (model->state == STATE_MENU)
     {
@@ -426,154 +565,517 @@ static void sdl_render(const GameModel *model)
         SDL_Color green = {50, 255, 50, 255};
         draw_text_centered("SPACE INVADERS", WIN_HEIGHT / 4, green, ctx.font_title);
 
-        const char *opts[] = {"JOUER", "CHARGER", "QUITTER"};
-        for (int i = 0; i < 3; i++)
+        // NOUVELLE LISTE D'OPTIONS
+        const char *opts[] = {"JOUER", "TUTORIEL", "CHARGER", "QUITTER"};
+
+        for (int i = 0; i < 4; i++) // Boucle sur 4
         {
             char buf[64];
             SDL_Color c = (i == model->menu_selection) ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){100, 100, 100, 255};
             snprintf(buf, sizeof(buf), (i == model->menu_selection) ? "> %s <" : "%s", opts[i]);
-            draw_text_centered(buf, WIN_HEIGHT / 2 + i * 60, c, ctx.font);
+            draw_text_centered(buf, WIN_HEIGHT / 2 + i * 50, c, ctx.font); // Espacement de 50 pour que ça rentre
         }
         SDL_RenderPresent(ctx.renderer);
         return;
     }
+    // --- RENDU TUTORIEL ---
+    if (model->state == STATE_TUTORIAL)
+    {
+        // 1. Fond (identique à STATE_OVERWRITE_CONFIRM)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255);
+        SDL_RenderClear(ctx.renderer);
 
+        // Afficher le fond de menu
+        if (ctx.tex_bg_menu_1)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
+        else if (ctx.tex_bg_menu)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu, NULL, NULL);
+
+        // Voile noir semi-transparent
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        // 2. Couleurs
+        SDL_Color title_col = {0, 255, 255, 255};
+        SDL_Color text_col = {255, 255, 255, 255};
+        SDL_Color cyan = {0, 255, 255, 255};    // Calmar (Type 1)
+        SDL_Color orange = {255, 165, 0, 255};  // Crabe (Type 2)
+        SDL_Color red = {255, 50, 50, 255};     // Poulpe (Type 3)
+        SDL_Color magenta = {255, 0, 255, 255}; // UFO
+        SDL_Color green = {0, 255, 0, 255};     // Bouclier
+
+        // 3. Titre
+        draw_text_centered("COMMENT JOUER ?", 50, title_col, ctx.font_title);
+
+        int start_y = 200;
+        int spacing = 60;                    // Espacement uniforme
+        int icon_x = (GAME_WIDTH / 2) + 20;  // Décalé vers la gauche pour centrer le tout
+        int text_x = (GAME_WIDTH / 2) + 100; // Texte après l'icône
+
+        // 4. Contrôles
+        draw_text_centered("Deplacez-vous avec les fleches", (start_y - 70), text_col, ctx.font);
+        draw_text_centered("Tirez avec ESPACE ou ENTREE", (start_y - 20), text_col, ctx.font);
+        draw_text_centered("Le but du jeu est de tuer tous les aliens.", start_y + 30, text_col, ctx.font);
+
+        // 5. Les Aliens avec espacement régulier
+        int aliens_start_y = start_y + 120;
+
+        // Calmar (Alien 1) - CYAN
+        SDL_FRect r1 = {(float)icon_x, (float)aliens_start_y, 40, 40};
+        if (ctx.tex_enemy1[0])
+        {
+            SDL_SetTextureColorMod(ctx.tex_enemy1[0], 0, 255, 255); // Cyan
+            SDL_RenderTexture(ctx.renderer, ctx.tex_enemy1[0], NULL, &r1);
+            SDL_SetTextureColorMod(ctx.tex_enemy1[0], 255, 255, 255); // Reset
+        }
+        draw_text("= 10 POINTS", text_x, aliens_start_y, cyan);
+
+        // Crabe (Alien 2) - ORANGE
+        SDL_FRect r2 = {(float)icon_x, (float)aliens_start_y + spacing, 40, 40};
+        if (ctx.tex_enemy2[0])
+        {
+            SDL_SetTextureColorMod(ctx.tex_enemy2[0], 255, 165, 0); // Orange
+            SDL_RenderTexture(ctx.renderer, ctx.tex_enemy2[0], NULL, &r2);
+            SDL_SetTextureColorMod(ctx.tex_enemy2[0], 255, 255, 255); // Reset
+        }
+        draw_text("= 20 POINTS", text_x, aliens_start_y + spacing, orange);
+
+        // Poulpe (Alien 3) - ROUGE
+        SDL_FRect r3 = {(float)icon_x, (float)aliens_start_y + (spacing * 2), 40, 40};
+        if (ctx.tex_enemy3[0])
+        {
+            SDL_SetTextureColorMod(ctx.tex_enemy3[0], 255, 50, 50); // Rouge
+            SDL_RenderTexture(ctx.renderer, ctx.tex_enemy3[0], NULL, &r3);
+            SDL_SetTextureColorMod(ctx.tex_enemy3[0], 255, 255, 255); // Reset
+        }
+        draw_text("= 30 POINTS", text_x, aliens_start_y + (spacing * 2), red);
+
+        // UFO - MAGENTA
+        SDL_FRect rUfo = {(float)icon_x - 10, (float)aliens_start_y + (spacing * 3), 60, 30};
+        if (ctx.tex_ufo)
+        {
+            SDL_SetTextureColorMod(ctx.tex_ufo, 255, 0, 255); // Magenta
+            SDL_RenderTexture(ctx.renderer, ctx.tex_ufo, NULL, &rUfo);
+            SDL_SetTextureColorMod(ctx.tex_ufo, 255, 255, 255); // Reset
+        }
+        draw_text("= ??? MYSTERE", text_x, aliens_start_y + (spacing * 3), magenta);
+
+        // Bouclier - VERT
+        SDL_FRect rShield = {(float)icon_x, (float)aliens_start_y + (spacing * 4), 40, 40};
+        if (ctx.tex_shields[0])
+        {
+            SDL_SetTextureColorMod(ctx.tex_shields[0], 0, 255, 0); // Vert
+            SDL_RenderTexture(ctx.renderer, ctx.tex_shields[0], NULL, &rShield);
+            SDL_SetTextureColorMod(ctx.tex_shields[0], 255, 255, 255); // Reset
+        }
+        draw_text("= PROTECTION", text_x, aliens_start_y + (spacing * 4), green);
+
+        draw_text_centered("(Appuyez sur Entree pour retour)", GAME_HEIGHT - 50,
+                           (SDL_Color){150, 150, 150, 255}, ctx.font);
+
+        SDL_RenderPresent(ctx.renderer);
+    }
     // --- GAME OVER ---
     // --- GAME OVER (FOND MENU FLOU + 3 OPTIONS) ---
     if (model->state == STATE_GAME_OVER)
     {
-        // A. Génération du flou (une seule fois au début du Game Over)
-        if (!ctx.tex_blur)
-        {
-            // On crée une texture toute petite (1/8ème de l'écran)
-            ctx.tex_blur = SDL_CreateTexture(ctx.renderer, SDL_PIXELFORMAT_RGBA8888,
-                                             SDL_TEXTUREACCESS_TARGET, WIN_WIDTH / 8, WIN_HEIGHT / 8);
-            if (ctx.tex_blur)
-            {
-                SDL_SetTextureScaleMode(ctx.tex_blur, SDL_SCALEMODE_LINEAR); // Pour l'effet flou
-
-                // On redirige le dessin vers la texture
-                SDL_SetRenderTarget(ctx.renderer, ctx.tex_blur);
-
-                // --- MODIFICATION ICI ---
-                // Au lieu de dessiner le jeu (draw_game_world), on dessine bg_menu
-                if (ctx.tex_bg_menu_1)
-                {
-                    // NULL, NULL = Remplir toute la texture avec l'image
-                    SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
-                }
-                else
-                {
-                    // Sécurité : Fond noir si l'image manque
-                    SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255);
-                    SDL_RenderClear(ctx.renderer);
-                }
-                // ------------------------
-
-                // On remet le dessin vers l'écran
-                SDL_SetRenderTarget(ctx.renderer, NULL);
-            }
-        }
-
-        // B. Rendu à l'écran
-        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255);
+        // 1. Fond (identique à STATE_SAVE_INPUT)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
         SDL_RenderClear(ctx.renderer);
 
-        // 1. On affiche la texture (qui contient bg_menu en petit) étirée -> FLOU
-        if (ctx.tex_blur)
-            SDL_RenderTexture(ctx.renderer, ctx.tex_blur, NULL, NULL);
+        // Afficher le fond de menu
+        if (ctx.tex_bg_menu_1)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
 
-        // 2. Voile Noir (Optionnel, pour lisibilité)
-        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 100); // Un peu moins sombre qu'avant
+        // Voile noir semi-transparent
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
         SDL_RenderFillRect(ctx.renderer, NULL);
         SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
 
-        // 3. Titre
+        // 2. Titre
         SDL_Color red = {255, 0, 0, 255};
         draw_text_centered("GAME OVER", WIN_HEIGHT / 4, red, ctx.font_title);
 
-        // 4. Score
+        // 3. Score
         char s_txt[32];
         SDL_Color white = {255, 255, 255, 255};
         snprintf(s_txt, sizeof(s_txt), "Score Final: %d", model->score);
         draw_text_centered(s_txt, WIN_HEIGHT / 2 - 50, white, ctx.font);
 
-        // 5. Menu 3 Options
+        // 4. Menu 3 Options
         const char *go_opts[] = {"SAUVEGARDER", "REJOUER", "QUITTER"};
         for (int i = 0; i < 3; i++)
         {
-            char buf[64];
-            // Couleur sélectionnée (Blanc) vs Normale (Gris)
-            SDL_Color c = (i == model->menu_selection) ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){150, 150, 150, 255};
-            snprintf(buf, sizeof(buf), (i == model->menu_selection) ? "> %s <" : "%s", go_opts[i]);
+            char buf[512];
+            SDL_Color c = (i == model->menu_selection)
+                              ? (SDL_Color){255, 255, 255, 255}
+                              : (SDL_Color){150, 150, 150, 255};
+
+            if (i == model->menu_selection)
+                snprintf(buf, sizeof(buf), "> %s <", go_opts[i]);
+            else
+                snprintf(buf, sizeof(buf), "%s", go_opts[i]);
+
             draw_text_centered(buf, WIN_HEIGHT / 2 + 30 + i * 60, c, ctx.font);
+        }
+
+        SDL_RenderPresent(ctx.renderer);
+    }
+    // --- POP-UP CONFIRMATION (AVEC FLOU) ---
+    // --- POP-UP CONFIRMATION (AVEC FLOU) ---
+    if (model->state == STATE_CONFIRM_QUIT)
+    {
+        // 1. Dessiner le monde du jeu en arrière-plan (identique à STATE_PAUSED)
+        draw_game_world(model);
+
+        // 2. Appliquer le voile noir semi-transparent
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 220);
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        // 3. TEXTES
+        SDL_Color red = {255, 50, 50, 255};
+        SDL_Color white = {255, 255, 255, 255};
+
+        draw_text_centered("ATTENTION", (GAME_HEIGHT / 2) + 10, red, ctx.font_title);
+        draw_text_centered("Quitter sans sauvegarder ?", (GAME_HEIGHT / 2) + 90, white, ctx.font);
+
+        // 4. LES 3 OPTIONS
+        const char *opts[] = {"OUI", "NON (REPRENDRE)", "SAUVEGARDER ET QUITTER"};
+
+        for (int i = 0; i < 3; i++)
+        {
+            SDL_Color c = (i == model->menu_selection)
+                              ? (SDL_Color){255, 215, 0, 255}
+                              : (SDL_Color){150, 150, 150, 255};
+
+            char buf[512];
+
+            if (i == model->menu_selection)
+                snprintf(buf, sizeof(buf), "> %s <", opts[i]);
+            else
+                snprintf(buf, sizeof(buf), "%s", opts[i]);
+
+            int y_pos = (GAME_HEIGHT / 2) + 150 + (i * 60);
+            draw_text_centered(buf, y_pos, c, ctx.font);
+        }
+
+        SDL_RenderPresent(ctx.renderer);
+    }
+    if (model->state == STATE_SAVE_INPUT)
+    {
+        // 1. Fond (Jeu flouté ou assombri)
+        // (Tu peux copier la logique du blur ici si tu veux, sinon juste noir transparent)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_RenderClear(ctx.renderer);
+        if (ctx.tex_bg_menu_1)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        SDL_Color yellow = {255, 255, 0, 255};
+        SDL_Color white = {255, 255, 255, 255};
+
+        draw_text_centered("NOM DE LA SAUVEGARDE :", (GAME_HEIGHT / 2) + 20, yellow, ctx.font_title);
+
+        // Affichage de ce que le joueur tape + un curseur "_" qui clignote
+        char display_buf[64];
+        snprintf(display_buf, sizeof(display_buf), "%s_", model->input_buffer);
+
+        draw_text_centered(display_buf, (GAME_HEIGHT / 2) + 100, white, ctx.font);
+        draw_text_centered("(Entree pour valider)", (GAME_HEIGHT / 2) + 150, (SDL_Color){100, 100, 100, 255}, ctx.font);
+
+        SDL_RenderPresent(ctx.renderer);
+    }
+
+    // --- RENDU MENU CHARGEMENT (LOAD) ---
+    if (model->state == STATE_LOAD_MENU)
+    {
+        // 1. Fond (identique à STATE_SAVE_INPUT)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_RenderClear(ctx.renderer);
+
+        // Afficher le fond de menu
+        if (ctx.tex_bg_menu_1)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
+
+        // Voile noir semi-transparent
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        // 2. Titre
+        SDL_Color green = {50, 255, 50, 255};
+        draw_text_centered("CHOISIR UNE SAUVEGARDE", 100, green, ctx.font_title);
+
+        // 3. Liste des fichiers
+        for (int i = 0; i < model->save_file_count; i++)
+        {
+            SDL_Color c = (i == model->menu_selection)
+                              ? (SDL_Color){255, 255, 255, 255}
+                              : (SDL_Color){100, 100, 100, 255};
+
+            char buf[512];
+
+            if (i == model->menu_selection)
+                snprintf(buf, sizeof(buf), "> %s <", model->save_files[i]);
+            else
+                snprintf(buf, sizeof(buf), "%s", model->save_files[i]);
+
+            draw_text_centered(buf, 200 + (i * 40), c, ctx.font);
+        }
+
+        // 4. Message si aucun fichier
+        if (model->save_file_count == 0)
+        {
+            draw_text_centered("AUCUN FICHIER TROUVE", GAME_HEIGHT / 2,
+                               (SDL_Color){255, 0, 0, 255}, ctx.font);
+        }
+
+        SDL_RenderPresent(ctx.renderer);
+    }
+    if (model->state == STATE_OVERWRITE_CONFIRM)
+    {
+        // 1. Fond (identique à STATE_LOAD_MENU)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_RenderClear(ctx.renderer);
+
+        // Afficher le fond de menu
+        if (ctx.tex_bg_menu_1)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
+
+        // Voile noir semi-transparent
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        SDL_Color red = {255, 50, 50, 255};
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Color yellow = {255, 215, 0, 255};
+
+        // 2. Message d'alerte
+        draw_text_centered("ATTENTION !", (GAME_HEIGHT / 2) + 20, red, ctx.font_title);
+
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Le fichier '%s.dat' existe deja.", model->input_buffer);
+        draw_text_centered(msg, (GAME_HEIGHT / 2) + 100, yellow, ctx.font);
+
+        draw_text_centered("Voulez-vous l'ecraser ?", (GAME_HEIGHT / 2) + 160, white, ctx.font);
+
+        // 3. Options (OUI / NON)
+        const char *opts[] = {"OUI", "NON (DUPLIQUE ET RENOMME)"};
+
+        for (int i = 0; i < 2; i++)
+        {
+            SDL_Color c = (i == model->menu_selection)
+                              ? (SDL_Color){255, 255, 255, 255}
+                              : (SDL_Color){100, 100, 100, 255};
+
+            char buf[512];
+
+            if (i == model->menu_selection)
+                snprintf(buf, sizeof(buf), "> %s <", opts[i]);
+            else
+                snprintf(buf, sizeof(buf), "%s", opts[i]);
+
+            draw_text_centered(buf, (GAME_HEIGHT / 2) + 210 + (i * 50), c, ctx.font);
+        }
+
+        SDL_RenderPresent(ctx.renderer);
+    }
+    if (model->state == STATE_SAVE_SELECT)
+    {
+        // 1. Fond (identique à STATE_SAVE_INPUT)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_RenderClear(ctx.renderer);
+
+        // Afficher le fond de menu
+        if (ctx.tex_bg_menu_1)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
+
+        // Voile noir semi-transparent
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        // 2. Titre
+        SDL_Color yellow = {255, 215, 0, 255};
+        draw_text_centered("CHOISIR L'EMPLACEMENT", 80, yellow, ctx.font_title);
+
+        // 3. Option "NOUVELLE SAUVEGARDE" (Index 0)
+        SDL_Color c_new = (model->menu_selection == 0)
+                              ? (SDL_Color){50, 255, 50, 255}
+                              : (SDL_Color){150, 150, 150, 255};
+
+        char buf_new[64];
+        if (model->menu_selection == 0)
+            snprintf(buf_new, sizeof(buf_new), "> CREER UNE NOUVELLE SAUVEGARDE  <");
+        else
+            snprintf(buf_new, sizeof(buf_new), " CREER UNE NOUVELLE SAUVEGARDE ");
+
+        draw_text_centered(buf_new, 180, c_new, ctx.font);
+
+        // 4. Liste des fichiers existants
+        for (int i = 0; i < model->save_file_count; i++)
+        {
+            // L'index dans le menu est décalé de +1 à cause de l'option "Nouvelle"
+            int menu_idx = i + 1;
+
+            SDL_Color c = (menu_idx == model->menu_selection)
+                              ? (SDL_Color){255, 255, 255, 255}
+                              : (SDL_Color){100, 100, 100, 255};
+
+            char buf[512];
+
+            if (menu_idx == model->menu_selection)
+                snprintf(buf, sizeof(buf), "> %s <", model->save_files[i]);
+            else
+                snprintf(buf, sizeof(buf), "%s", model->save_files[i]);
+
+            draw_text_centered(buf, 230 + (i * 45), c, ctx.font);
         }
 
         SDL_RenderPresent(ctx.renderer);
     }
 }
 // 4. Entrées
-static GameCommand sdl_get_input(void)
+static GameCommand sdl_get_input(GameModel *model)
 {
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
+        // 1. Quitter la fenêtre
         if (event.type == SDL_EVENT_QUIT)
             return CMD_EXIT;
 
+        // ============================================================
+        // A. MODE SAISIE DE TEXTE (Tapez le nom)
+        // ============================================================
+        if (model->state == STATE_SAVE_INPUT && event.type == SDL_EVENT_KEY_DOWN)
+        {
+            SDL_Keycode key = event.key.key;
+
+            if (key == SDLK_RETURN || key == SDLK_KP_ENTER)
+                return CMD_RETURN;
+            if (key == SDLK_ESCAPE)
+                return CMD_PAUSE;
+
+            // Effacer
+            if (key == SDLK_BACKSPACE)
+            {
+                int len = strlen(model->input_buffer);
+                if (len > 0)
+                    model->input_buffer[len - 1] = '\0';
+            }
+            // Écrire (Lettres, Chiffres, -, _)
+            else if (strlen(model->input_buffer) < MAX_FILENAME_LEN - 1)
+            {
+                char c = 0;
+                // SDL utilise les codes minuscules pour les lettres
+                if (key >= SDLK_A && key <= SDLK_Z)
+                    c = (char)key;
+                if (key >= SDLK_0 && key <= SDLK_9)
+                    c = (char)key;
+                if (key == SDLK_SPACE)
+                    c = '_';
+                if (key == SDLK_MINUS)
+                    c = '-';
+
+                if (c != 0)
+                {
+                    int len = strlen(model->input_buffer);
+                    model->input_buffer[len] = c;
+                    model->input_buffer[len + 1] = '\0';
+                }
+            }
+            return CMD_NONE;
+        }
+
+        // ============================================================
+        // B. TOUCHES PRESSÉES (MENUS & JEU)
+        // ============================================================
         if (event.type == SDL_EVENT_KEY_DOWN)
         {
-            switch (event.key.key)
+            SDL_Keycode key = event.key.key;
+
+            switch (key)
             {
             case SDLK_ESCAPE:
-                return CMD_EXIT;
+                return CMD_PAUSE;
             case SDLK_Q:
                 return CMD_EXIT;
-
-                // --- PLEIN ÉCRAN (F11) ---
             case SDLK_F11:
             {
-                // On récupère les flags actuels de la fenêtre
                 SDL_WindowFlags flags = SDL_GetWindowFlags(ctx.window);
-
-                // Si on est déjà en Fullscreen, on passe en fenêtré (false)
-                // Sinon on passe en Fullscreen (true)
-                bool is_fullscreen = (flags & SDL_WINDOW_FULLSCREEN);
-                SDL_SetWindowFullscreen(ctx.window, !is_fullscreen);
+                SDL_SetWindowFullscreen(ctx.window, !(flags & SDL_WINDOW_FULLSCREEN));
                 break;
             }
-            // --- Navigation Menu ---
+
+            // --- VALIDATION ---
+            case SDLK_RETURN:
+                return CMD_RETURN;
+            case SDLK_KP_ENTER:
+                return CMD_RETURN;
+            case SDLK_SPACE:
+                return CMD_SHOOT; // Espace valide aussi dans les menus
+
+            // --- NAVIGATION (HAUT / BAS) ---
             case SDLK_UP:
                 return CMD_UP;
             case SDLK_DOWN:
                 return CMD_DOWN;
-            case SDLK_RETURN:
-                return CMD_SHOOT; // Entrée valide aussi
-            case SDLK_SPACE:
-                return CMD_SHOOT;
-                // -----------------------
 
+            // --- NAVIGATION (GAUCHE / DROITE) ---
+            // C'est ICI que ça se joue !
+            case SDLK_LEFT:
+                // Si on joue -> Move Left. Sinon -> Menu Left
+                if (model->state == STATE_PLAYING)
+                    return CMD_MOVE_LEFT;
+                else
+                    return CMD_LEFT;
+
+            case SDLK_RIGHT:
+                // Si on joue -> Move Right. Sinon -> Menu Right
+                if (model->state == STATE_PLAYING)
+                    return CMD_MOVE_RIGHT;
+                else
+                    return CMD_RIGHT;
+
+            // --- COMMANDES SPÉCIALES JEU ---
             case SDLK_P:
                 return CMD_PAUSE;
-            case SDLK_LEFT:
-                return CMD_MOVE_LEFT;
-            case SDLK_RIGHT:
-                return CMD_MOVE_RIGHT;
+
             default:
                 break;
             }
         }
     }
 
-    const bool *state = SDL_GetKeyboardState(NULL);
-    if (state[SDL_SCANCODE_LEFT])
-        return CMD_MOVE_LEFT;
-    if (state[SDL_SCANCODE_RIGHT])
-        return CMD_MOVE_RIGHT;
+    // ============================================================
+    // C. JEU FLUIDE (Maintenir la touche)
+    // ============================================================
+    if (model->state == STATE_PLAYING)
+    {
+        const bool *state = SDL_GetKeyboardState(NULL);
+        if (state[SDL_SCANCODE_LEFT])
+            return CMD_MOVE_LEFT;
+        if (state[SDL_SCANCODE_RIGHT])
+            return CMD_MOVE_RIGHT;
+        if (state[SDL_SCANCODE_SPACE])
+            return CMD_SHOOT;
+    }
 
     return CMD_NONE;
 }
+
+// ============================================================
+// C. MOUVEMENT CONTINU (Uniquement pendant le JEU)
+// ============================================================
+// On empêche cela dans les menus pour ne pas faire défiler trop vite
 
 static void draw_text(const char *text, int x, int y, SDL_Color color)
 {

@@ -60,11 +60,19 @@ int main(int argc, char *argv[])
         accumulator += frame_time;
 
         // B. Gestion des Entrées
-        GameCommand cmd = view->get_input();
+        GameCommand cmd = view->get_input(model);
         if (cmd == CMD_EXIT)
         {
-            exit(0);
-            running = false;
+            // 1. Si on est déjà dans la confirmation et qu'on reclique sur la croix -> On force la sortie
+            if (model->state == STATE_CONFIRM_QUIT)
+            {
+                exit(0);
+            }
+
+            // 2. Sinon, on sauvegarde l'état actuel et on demande confirmation
+            model->previous_state = model->state;
+            model->state = STATE_CONFIRM_QUIT;
+            model->menu_selection = 1; // Par défaut sur "NON" (Sécurité)
         }
         else
         {

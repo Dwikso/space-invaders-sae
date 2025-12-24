@@ -12,7 +12,10 @@ typedef enum
     CMD_EXIT,       // Quitter le jeu
     CMD_UP,
     CMD_DOWN,
-    CMD_RETURN
+    CMD_RETURN,
+    CMD_LEFT,
+    CMD_RIGHT,
+
 } GameCommand;
 
 #endif // CONTROLLER_H

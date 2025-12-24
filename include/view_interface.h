@@ -18,8 +18,7 @@ typedef struct
     void (*render)(const GameModel *model);
 
     // Récupère l'entrée utilisateur et la traduit en commande de jeu
-    GameCommand (*get_input)(void);
-
+    GameCommand (*get_input)(GameModel *model);
 } ViewInterface;
 
 #endif // VIEW_INTERFACE_H

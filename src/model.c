@@ -3,7 +3,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
+#include <stdio.h>
+#include <sys/stat.h> // Pour mkdir sur Linux/Mac
+#include <sys/types.h>
+#ifdef _WIN32
+#include <direct.h> // Pour _mkdir sur Windows
+#endif
+#include <dirent.h> // Pour lire le dossier
+#include <string.h> // Pour strlen, strcpy...
 // --- Constantes de Gameplay (Tes valeurs) ---
 #define PLAYER_SPEED 40.0f
 #define BULLET_SPEED 60.0f
@@ -47,7 +54,19 @@ static void spawn_bullet(GameModel *model, float x, float y, float dy, EntityTyp
         }
     }
 }
+static bool save_file_exists(const char *filename)
+{
+    char path[128];
+    snprintf(path, sizeof(path), "sauvegardes/%s", filename);
 
+    FILE *f = fopen(path, "rb");
+    if (f)
+    {
+        fclose(f); // Il existe, on le referme tout de suite
+        return true;
+    }
+    return false;
+}
 static void init_enemies(GameModel *model)
 {
     int rows = 5;
@@ -81,7 +100,7 @@ static void init_enemies(GameModel *model)
             e->height = ENEMY_HEIGHT;
 
             e->x = 5 + c * (ENEMY_WIDTH + 2);
-            e->y = 5 + r * (ENEMY_HEIGHT + 2);
+            e->y = 7 + r * (ENEMY_HEIGHT + 2);
 
             count++;
         }
@@ -93,8 +112,38 @@ static void init_enemies(GameModel *model)
     // YO-YO INIT
     model->drop_direction = 1;
     model->drop_step_count = 0;
+
+    // --- RESET UFO POUR LE NIVEAU ---
+    model->ufo.active = false;
+    model->ufo.hasSpawnedThisLevel = false;
+    model->ufo.width = UFO_WIDTH;
+    model->ufo.height = UFO_HEIGHT;
+    // La position Y est fixe : tout en haut
+    model->ufo.y = 4; // Juste au-dessus de la ligne d'ennemis du haut
 }
 
+// Fonction pour faire apparaître l'OVNI
+static void spawn_ufo(GameModel *model)
+{
+    model->ufo.active = true;
+    model->ufo.hasSpawnedThisLevel = true;
+
+    // Pile ou face : vient de gauche ou de droite ?
+    if (rand() % 2 == 0)
+    {
+        // Commence à gauche, va à droite
+        model->ufo.x = -model->ufo.width;
+        model->ufo.dx = UFO_SPEED;
+    }
+    else
+    {
+        // Commence à droite, va à gauche
+        model->ufo.x = GAME_WIDTH;
+        model->ufo.dx = -UFO_SPEED;
+    }
+    // Optionnel : petit log pour le debug
+    // printf("UFO Spawned!\n");
+}
 // --- Fonctions Publiques ---
 
 GameModel *model_init(void)
@@ -109,7 +158,7 @@ GameModel *model_init(void)
     model->lives = 3;
     model->level = 1;
     model->hit_timer = 0.0f;
-
+    model->normal_max_lives = MAX_LIVES_NORMAL; // <-- AJOUTE CA
     model->player.active = true;
     model->player.type = ENTITY_PLAYER;
     model->player.width = PLAYER_WIDTH;
@@ -126,65 +175,224 @@ GameModel *model_init(void)
     model->animation_timer = 0;
 
     init_enemies(model);
+    // --- SETUP BOUCLIERS ---
+    float shield_w = 8.0f; // Largeur arbitraire (adapte selon ton image)
+    float shield_h = 6.0f;
+
+    // Espace total disponible divisé par (nombre de boucliers + 1) pour centrer
+    float spacing = GAME_WIDTH / (MAX_SHIELDS + 1);
+
+    for (int i = 0; i < MAX_SHIELDS; i++)
+    {
+        model->shields[i].active = true;
+        model->shields[i].health = SHIELD_MAX_HEALTH; // 10
+        model->shields[i].width = shield_w;
+        model->shields[i].height = shield_h;
+
+        // Position X : 1er tiers, 2eme tiers, etc. - la moitié de la largeur pour centrer
+        model->shields[i].x = (spacing * (i + 1)) - (shield_w / 2);
+
+        // Position Y : Juste au-dessus du joueur (ajuste le -15 selon tes besoins)
+        model->shields[i].y = GAME_HEIGHT - PLAYER_HEIGHT - 9;
+    }
 
     return model;
 }
+static void reset_game(GameModel *model)
+{
+    // 1. Reset Stats
+    model->score = 0;
+    model->lives = 3;
+    model->level = 1;
+    model->hit_timer = 0;
 
+    // 2. Reset Difficulté
+    model->enemy_speed_mult = 1.0f;
+    model->direction_enemies = 1;
+    model->drop_direction = 1;
+    model->drop_step_count = 0;
+
+    // 3. Nettoyer les balles
+    for (int k = 0; k < MAX_BULLETS; k++)
+    {
+        model->bullets[k].active = false;
+    }
+
+    // 4. Reset UFO
+    model->ufo.active = false;
+    model->ufo.hasSpawnedThisLevel = false;
+
+    // 5. Replacer le joueur
+    model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
+    model->player.dx = 0;
+
+    // 6. RECRÉER ENNEMIS ET BOUCLIERS
+    // Cette fonction doit contenir la boucle des boucliers !
+    init_enemies(model);
+
+    // --- SÉCURITÉ : RESET BOUCLIERS EXPLICITE ---
+    // Si jamais init_enemies ne le fait pas, on le force ici :
+    float shield_w = 6.0f;
+    float shield_h = 4.0f;
+    float spacing = GAME_WIDTH / (MAX_SHIELDS + 1);
+
+    for (int i = 0; i < MAX_SHIELDS; i++)
+    {
+        model->shields[i].active = true; // ON RÉACTIVE !
+        model->shields[i].health = 10;   // ON RÉPARE !
+        model->shields[i].width = shield_w;
+        model->shields[i].height = shield_h;
+        model->shields[i].x = (spacing * (i + 1)) - (shield_w / 2);
+        model->shields[i].y = GAME_HEIGHT - PLAYER_HEIGHT - 6;
+    }
+    // ---------------------------------------------
+
+    // 7. Relancer le jeu
+    model->state = STATE_PLAYING;
+}
 void model_free(GameModel *model)
 {
     if (model)
         free(model);
 }
 
+// src/model.c
+
 void model_handle_input(GameModel *model, GameCommand cmd)
 {
-    // --- 1. MENU ---
+    // =================================================
+    // 1. MENU PRINCIPAL
+    // =================================================
     if (model->state == STATE_MENU)
     {
-        if (cmd == CMD_UP)
+        if (cmd == CMD_PAUSE)
+            exit(0);
+
+        // Navigation (Maintenant de 0 à 3)
+        if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
         {
             model->menu_selection--;
             if (model->menu_selection < 0)
-                model->menu_selection = 2;
+                model->menu_selection = 3; // <--- 3 est la dernière option
         }
-        else if (cmd == CMD_DOWN)
+        else if (cmd == CMD_DOWN || cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
         {
             model->menu_selection++;
-            if (model->menu_selection > 2)
-                model->menu_selection = 0;
+            if (model->menu_selection > 3)
+                model->menu_selection = 0; // <--- Retour à 0 après 3
         }
-        else if (cmd == CMD_SHOOT)
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
         {
+
             if (model->menu_selection == 0)
             { // JOUER
+                // ... (Ton code d'initialisation du jeu inchangé) ...
+                init_enemies(model);
                 model->score = 0;
                 model->lives = 3;
                 model->level = 1;
-                init_enemies(model);
+                model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
                 model->state = STATE_PLAYING;
             }
+            else if (model->menu_selection == 1)
+            { // TUTORIEL (NOUVEAU)
+                model->state = STATE_TUTORIAL;
+            }
             else if (model->menu_selection == 2)
-            { // QUITTER
+            { // CHARGER (Décalé en position 2)
+                model_scan_saves(model);
+                if (model->save_file_count > 0)
+                {
+                    model->state = STATE_LOAD_MENU;
+                    model->menu_selection = 0;
+                }
+                else
+                {
+                    printf("Aucune sauvegarde trouvée !\n");
+                }
+            }
+            else if (model->menu_selection == 3)
+            { // QUITTER (Décalé en position 3)
                 exit(0);
             }
         }
         return;
     }
 
-    // --- 2. GAME OVER ---
+    // =================================================
+    // 2. MENU CHARGEMENT (LOAD)
+    // =================================================
+    if (model->state == STATE_LOAD_MENU)
+    {
+        if (cmd == CMD_PAUSE || cmd == CMD_EXIT)
+        {
+            model->state = STATE_MENU;
+            model->menu_selection = 1;
+            return;
+        }
+
+        if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
+        {
+            model->menu_selection--;
+            if (model->menu_selection < 0)
+                model->menu_selection = model->save_file_count - 1;
+        }
+        else if (cmd == CMD_DOWN || cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
+        {
+            model->menu_selection++;
+            if (model->menu_selection >= model->save_file_count)
+                model->menu_selection = 0;
+        }
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+        {
+            if (model->save_file_count > 0)
+            {
+                char *file_to_load = model->save_files[model->menu_selection];
+                if (model_load_named(model, file_to_load))
+                {
+                    // Le jeu reprend automatiquement
+                }
+            }
+        }
+        return;
+    }
+
+    // =================================================
+    // NOUVEAU : LOGIQUE DU TUTORIEL
+    // =================================================
+    if (model->state == STATE_TUTORIAL)
+    {
+        // On appuie sur n'importe quoi pour revenir au menu
+        if (cmd == CMD_PAUSE || cmd == CMD_EXIT || cmd == CMD_SHOOT || cmd == CMD_RETURN)
+        {
+            model->state = STATE_MENU;
+            model->menu_selection = 1; // On remet le curseur sur "Tutoriel"
+        }
+        return;
+    }
+    // =================================================
+    // 3. GAME OVER
+    // =================================================
     if (model->state == STATE_GAME_OVER)
     {
         if (model->game_over_timer < 1.0f)
             return;
+
         if (cmd == CMD_EXIT)
-            exit(0);
-        if (cmd == CMD_UP)
+        {
+            model->previous_state = model->state;
+            model->state = STATE_CONFIRM_QUIT;
+            model->menu_selection = 1;
+            return;
+        }
+
+        if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
         {
             model->menu_selection--;
             if (model->menu_selection < 0)
                 model->menu_selection = 2;
         }
-        else if (cmd == CMD_DOWN)
+        else if (cmd == CMD_DOWN || cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
         {
             model->menu_selection++;
             if (model->menu_selection > 2)
@@ -193,59 +401,258 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         else if (cmd == CMD_SHOOT || cmd == CMD_RETURN)
         {
             if (model->menu_selection == 0)
-            {
-                // SAUVEGARDER
-                printf("Sauvegarde...\n"); // TODO: Ta fonction de save
+            { // SAUVEGARDER
+                model_scan_saves(model);
+                model->state = STATE_SAVE_SELECT; // <--- Vers la liste !
+                model->menu_selection = 0;
             }
             else if (model->menu_selection == 1)
-            {
-                // REJOUER
-                model->score = 0;
-                model->lives = 3;
-                model->level = 1;
-                init_enemies(model);
-                model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
-                model->state = STATE_PLAYING;
+            { // REJOUER
+                reset_game(model);
             }
             else
-            {
-                // QUITTER
-                exit(0);
+            { // QUITTER
+                model->previous_state = model->state;
+                model->state = STATE_CONFIRM_QUIT;
+                model->menu_selection = 1;
             }
         }
         return;
     }
 
-    // --- 3. JEU ---
+    // =================================================
+    // 4. MENU PAUSE
+    // =================================================
     if (model->state == STATE_PAUSED)
     {
         if (cmd == CMD_PAUSE)
+        {
             model->state = STATE_PLAYING;
+            return;
+        }
+
+        if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
+        {
+            model->menu_selection--;
+            if (model->menu_selection < 0)
+                model->menu_selection = 2;
+        }
+        else if (cmd == CMD_DOWN || cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
+        {
+            model->menu_selection++;
+            if (model->menu_selection > 2)
+                model->menu_selection = 0;
+        }
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+        {
+            if (model->menu_selection == 0)
+            { // SAUVEGARDER
+                model_scan_saves(model);
+                model->state = STATE_SAVE_SELECT; // <--- Vers la liste !
+                model->menu_selection = 0;
+            }
+            else if (model->menu_selection == 1)
+            { // REJOUER
+                reset_game(model);
+            }
+            else
+            { // QUITTER
+                model->previous_state = model->state;
+                model->state = STATE_CONFIRM_QUIT;
+                model->menu_selection = 1;
+            }
+        }
         return;
     }
 
+    // =================================================
+    // 5. NOUVEAU : SÉLECTION DU SLOT DE SAUVEGARDE
+    // =================================================
+    if (model->state == STATE_SAVE_SELECT)
+    {
+        if (cmd == CMD_PAUSE || cmd == CMD_EXIT)
+        {
+            model->state = STATE_PAUSED;
+            return;
+        }
+
+        int total_options = model->save_file_count + 1;
+
+        if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
+        {
+            model->menu_selection--;
+            if (model->menu_selection < 0)
+                model->menu_selection = total_options - 1;
+        }
+        else if (cmd == CMD_DOWN || cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
+        {
+            model->menu_selection++;
+            if (model->menu_selection >= total_options)
+                model->menu_selection = 0;
+        }
+
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+        {
+            if (model->menu_selection == 0)
+            {
+                // CREER NOUVELLE
+                model->state = STATE_SAVE_INPUT;
+                model->input_buffer[0] = '\0';
+            }
+            else
+            {
+                // ECRASER EXISTANTE
+                int file_index = model->menu_selection - 1;
+                char *selected_file = model->save_files[file_index];
+
+                size_t len = strlen(selected_file);
+                if (len > 4)
+                    strncpy(model->input_buffer, selected_file, len - 4);
+                else
+                    strcpy(model->input_buffer, selected_file);
+                model->input_buffer[len - 4] = '\0';
+
+                model->state = STATE_OVERWRITE_CONFIRM;
+                model->menu_selection = 0;
+            }
+        }
+        return;
+    }
+
+    // =================================================
+    // 6. SAISIE NOM SAUVEGARDE
+    // =================================================
+    if (model->state == STATE_SAVE_INPUT)
+    {
+        if (cmd == CMD_PAUSE)
+        {
+            model->state = STATE_PAUSED;
+            model->pending_quit = false;
+        }
+        else if (cmd == CMD_RETURN)
+        {
+            if (strlen(model->input_buffer) > 0)
+            {
+                char filename[64];
+                snprintf(filename, sizeof(filename), "%s.dat", model->input_buffer);
+
+                if (save_file_exists(filename))
+                {
+                    model->state = STATE_OVERWRITE_CONFIRM;
+                    model->menu_selection = 1;
+                }
+                else
+                {
+                    model_save_named(model, filename);
+                    if (model->pending_quit)
+                        exit(0);
+                    else
+                        model->state = STATE_PAUSED;
+                }
+            }
+        }
+        return;
+    }
+
+    // =================================================
+    // 7. CONFIRMATION QUITTER (OUI / NON / SAVE)
+    // =================================================
+    if (model->state == STATE_CONFIRM_QUIT)
+    {
+        if (cmd == CMD_LEFT || cmd == CMD_UP || cmd == CMD_MOVE_LEFT)
+        {
+            model->menu_selection--;
+            if (model->menu_selection < 0)
+                model->menu_selection = 2;
+        }
+        else if (cmd == CMD_RIGHT || cmd == CMD_DOWN || cmd == CMD_MOVE_RIGHT)
+        {
+            model->menu_selection++;
+            if (model->menu_selection > 2)
+                model->menu_selection = 0;
+        }
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+        {
+            if (model->menu_selection == 0)
+                exit(0); // OUI
+            else if (model->menu_selection == 1)
+                model->state = model->previous_state; // NON
+            else if (model->menu_selection == 2)
+            { // SAVE & QUIT
+
+                // --- CORRECTION MAJEURE ICI ---
+                model->pending_quit = true;
+                model_scan_saves(model);          // Scan des fichiers
+                model->state = STATE_SAVE_SELECT; // Vers la LISTE (Select), PAS la saisie (Input) !
+                model->menu_selection = 0;
+                // -----------------------------
+            }
+        }
+        else if (cmd == CMD_PAUSE)
+        {
+            model->state = model->previous_state;
+        }
+        return;
+    }
+
+    // =================================================
+    // 8. CONFIRMATION ÉCRASEMENT
+    // =================================================
+    if (model->state == STATE_OVERWRITE_CONFIRM)
+    {
+        if (cmd == CMD_LEFT || cmd == CMD_UP || cmd == CMD_MOVE_LEFT)
+            model->menu_selection = 0;
+        else if (cmd == CMD_RIGHT || cmd == CMD_DOWN || cmd == CMD_MOVE_RIGHT)
+            model->menu_selection = 1;
+
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+        {
+            if (model->menu_selection == 0)
+            { // OUI
+                char filename[64];
+                snprintf(filename, sizeof(filename), "%s.dat", model->input_buffer);
+                model_save_named(model, filename);
+                if (model->pending_quit)
+                    exit(0);
+                else
+                    model->state = STATE_PAUSED;
+            }
+            else
+            { // NON
+                model->state = STATE_SAVE_INPUT;
+            }
+        }
+        else if (cmd == CMD_PAUSE)
+        {
+            model->state = STATE_SAVE_INPUT;
+        }
+        return;
+    }
+
+    // =================================================
+    // 9. JEU (EN COURS)
+    // =================================================
     if (model->state == STATE_PLAYING)
     {
         if (cmd == CMD_PAUSE)
         {
             model->state = STATE_PAUSED;
+            model->menu_selection = 0;
             return;
         }
 
         switch (cmd)
         {
         case CMD_MOVE_LEFT:
+        case CMD_LEFT:
             model->player.dx = -PLAYER_SPEED;
             break;
         case CMD_MOVE_RIGHT:
+        case CMD_RIGHT:
             model->player.dx = PLAYER_SPEED;
             break;
         case CMD_SHOOT:
-            spawn_bullet(model,
-                         model->player.x + model->player.width / 2.0f - BULLET_WIDTH / 2.0f,
-                         model->player.y - 1,
-                         -BULLET_SPEED,
-                         ENTITY_BULLET_PLAYER);
+            spawn_bullet(model, model->player.x + model->player.width / 2.0f - BULLET_WIDTH / 2.0f, model->player.y - 1, -BULLET_SPEED, ENTITY_BULLET_PLAYER);
             break;
         case CMD_NONE:
             model->player.dx = 0;
@@ -255,23 +662,25 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         }
     }
 }
-
 void model_update(GameModel *model, double dt)
 {
+    // 1. GESTION DU GAME OVER (TIMER)
     if (model->state == STATE_GAME_OVER)
     {
-        model->game_over_timer += dt; // <--- CETTE LIGNE EST CRUCIALE !
-        return;                       // On arrête ici pour ne pas bouger les ennemis
+        model->game_over_timer += dt;
+        return;
     }
+
+    // 2. PAUSE / MENU
     if (model->state != STATE_PLAYING)
         return;
 
+    // 3. GESTION DU TIMER D'EXPLOSION JOUEUR
     if (model->hit_timer > 0)
     {
         model->hit_timer -= dt;
-        // Pendant l'explosion, on peut empêcher le joueur de bouger si tu veux :
-        // model->player.dx = 0;
     }
+
     // --- A. Mise à jour Joueur ---
     model->player.x += model->player.dx * dt;
     if (model->player.x < 0)
@@ -287,7 +696,42 @@ void model_update(GameModel *model, double dt)
         model->animation_timer = 0;
     }
 
-    // --- C. Gestion Ennemis (Mouvement) ---
+    // --- C. GESTION DE L'OVNI (UFO) ---
+    if (model->ufo.active)
+    {
+        // Déplacement
+        model->ufo.x += model->ufo.dx * dt;
+
+        // Sortie de l'écran ?
+        if ((model->ufo.dx > 0 && model->ufo.x > GAME_WIDTH) ||
+            (model->ufo.dx < 0 && model->ufo.x + model->ufo.width < 0))
+        {
+            model->ufo.active = false;
+        }
+    }
+    else
+    {
+        // Chance d'apparition
+        bool enemies_alive = false;
+        for (int i = 0; i < MAX_ENEMIES; i++)
+        {
+            if (model->enemies[i].active)
+            {
+                enemies_alive = true;
+                break;
+            }
+        }
+
+        if (!model->ufo.hasSpawnedThisLevel && enemies_alive)
+        {
+            if (rand() % 150 == 0) // Chance rare
+            {
+                spawn_ufo(model);
+            }
+        }
+    }
+
+    // --- D. Gestion Ennemis (Mouvement) ---
     bool touch_edge = false;
     int active_enemies = 0;
 
@@ -322,7 +766,7 @@ void model_update(GameModel *model, double dt)
         { // Descente
             move_y = ENEMY_DROP_HEIGHT;
             model->drop_step_count++;
-            if (model->drop_step_count >= 4)
+            if (model->drop_step_count >= 3)
                 model->drop_direction = -1;
         }
         else
@@ -353,7 +797,7 @@ void model_update(GameModel *model, double dt)
         }
     }
 
-    // --- D. Tir Ennemi ---
+    // --- E. Tir Ennemi ---
     int fire_chance = 100;
     if (utils_random_int(0, fire_chance) < model->level + 1)
     {
@@ -372,7 +816,7 @@ void model_update(GameModel *model, double dt)
         }
     }
 
-    // --- E. Mise à jour Balles ---
+    // --- F. Mise à jour Balles ---
     for (int i = 0; i < MAX_BULLETS; i++)
     {
         Entity *b = &model->bullets[i];
@@ -387,8 +831,59 @@ void model_update(GameModel *model, double dt)
             continue;
         }
 
+        // --- COLLISION BALLE vs BOUCLIERS ---
+        bool hit_shield = false;
+        for (int s = 0; s < MAX_SHIELDS; s++)
+        {
+            Shield *sh = &model->shields[s];
+
+            if (sh->active)
+            {
+                if (b->x < sh->x + sh->width &&
+                    b->x + b->width > sh->x &&
+                    b->y < sh->y + sh->height &&
+                    b->y + b->height > sh->y)
+                {
+                    b->active = false;
+                    hit_shield = true;
+                    sh->health--;
+                    if (sh->health <= 0)
+                        sh->active = false;
+                    break;
+                }
+            }
+        }
+        if (hit_shield)
+            continue;
+
+        // --- COLLISIONS BALLE JOUEUR ---
         if (b->type == ENTITY_BULLET_PLAYER)
         {
+            // 1. VS UFO (C'EST ICI QUE J'AI AJOUTÉ LE CODE MANQUANT)
+            if (model->ufo.active)
+            {
+                // On crée une entité temporaire pour utiliser check_collision
+                Entity ufoProxy = {
+                    .x = model->ufo.x,
+                    .y = model->ufo.y,
+                    .width = model->ufo.width,
+                    .height = model->ufo.height,
+                    .active = true};
+
+                if (check_collision(b, &ufoProxy))
+                {
+                    b->active = false;         // Balle détruite
+                    model->ufo.active = false; // OVNI détruit
+                    model->score += 60;        // Bonus Points
+
+                    // Bonus Vie : On ajoute toujours 1 (récupération ou bonus)
+                    model->lives++;
+
+                    continue; // On passe à la balle suivante
+                }
+            }
+
+            // 2. VS ENNEMIS CLASSIQUES
             for (int e = 0; e < MAX_ENEMIES; e++)
             {
                 if (check_collision(b, &model->enemies[e]))
@@ -406,13 +901,13 @@ void model_update(GameModel *model, double dt)
                 }
             }
         }
+        // --- COLLISIONS BALLE ENNEMIE ---
         else if (b->type == ENTITY_BULLET_ENEMY)
         {
             if (check_collision(b, &model->player))
             {
                 b->active = false;
 
-                // SI ON N'EST PAS DÉJÀ EN TRAIN D'EXPLOSER
                 if (model->hit_timer <= 0)
                 {
                     model->lives--;
@@ -425,14 +920,94 @@ void model_update(GameModel *model, double dt)
                     }
                     else
                     {
-                        // ON DÉCLENCHE L'EXPLOSION (pendant 1 seconde)
                         model->hit_timer = 1.0f;
-
-                        // Optionnel : Reset position au centre
-                        // model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
                     }
                 }
             }
         }
     }
+}
+// 1. Fonction pour lister les sauvegardes
+void model_scan_saves(GameModel *model)
+{
+    model->save_file_count = 0;
+    DIR *d;
+    struct dirent *dir;
+
+    // On essaie d'ouvrir le dossier
+    d = opendir("sauvegardes");
+    if (d)
+    {
+        while ((dir = readdir(d)) != NULL)
+        {
+            // On ignore "." et ".." et on cherche les fichiers .dat
+            if (strstr(dir->d_name, ".dat"))
+            {
+                if (model->save_file_count < MAX_SAVE_FILES)
+                {
+                    // On copie le nom du fichier dans notre liste
+                    snprintf(model->save_files[model->save_file_count], 256, "%s", dir->d_name);
+                    model->save_file_count++;
+                }
+            }
+        }
+        closedir(d);
+    }
+}
+
+// 2. Sauvegarde avec un nom personnalisé
+void model_save_named(const GameModel *model, const char *filename)
+{
+// On recrée le dossier au cas où
+#ifdef _WIN32
+    _mkdir("sauvegardes");
+#else
+    struct stat st = {0};
+    if (stat("sauvegardes", &st) == -1)
+        mkdir("sauvegardes", 0777);
+#endif
+
+    char path[128];
+    // On construit le chemin : "sauvegardes/MonNom.dat"
+    snprintf(path, sizeof(path), "sauvegardes/%s", filename);
+
+    FILE *f = fopen(path, "wb");
+    if (f)
+    {
+        fwrite(model, sizeof(GameModel), 1, f);
+        fclose(f);
+        printf("Sauvegarde reussie : %s\n", path);
+    }
+}
+
+// 3. Chargement avec nom
+bool model_load_named(GameModel *model, const char *filename)
+{
+    char path[128];
+    snprintf(path, sizeof(path), "sauvegardes/%s", filename);
+
+    FILE *f = fopen(path, "rb");
+    if (!f)
+        return false;
+
+    GameModel temp;
+    size_t res = fread(&temp, sizeof(GameModel), 1, f);
+    fclose(f);
+
+    if (res == 1)
+    {
+        *model = temp; // On récupère toutes les données (score, vies, positions...)
+
+        // --- C'EST ICI QUE TU CHANGES ---
+        // AVANT : model->state = STATE_PAUSED;
+        // MAINTENANT :
+        model->state = STATE_PLAYING;
+        // --------------------------------
+
+        // Petit reset visuel pour éviter que le vaisseau clignote rouge bizarrement
+        model->hit_timer = 0;
+
+        return true;
+    }
+    return false;
 }
