@@ -8,7 +8,7 @@
 #define GAME_HEIGHT 50
 
 // Limites pour les tableaux statiques (pour éviter malloc à chaque tir)
-#define MAX_ENEMIES 50
+#define MAX_ENEMIES 60
 #define MAX_BULLETS 100
 
 // Vitesse de la boucle de jeu (60 FPS)

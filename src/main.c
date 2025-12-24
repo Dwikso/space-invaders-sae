@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "model.h"
 #include "view_ncurses.h"
@@ -62,6 +63,7 @@ int main(int argc, char *argv[])
         GameCommand cmd = view->get_input();
         if (cmd == CMD_EXIT)
         {
+            exit(0);
             running = false;
         }
         else

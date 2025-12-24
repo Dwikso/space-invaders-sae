@@ -108,6 +108,7 @@ GameModel *model_init(void)
     model->score = 0;
     model->lives = 3;
     model->level = 1;
+    model->hit_timer = 0.0f;
 
     model->player.active = true;
     model->player.type = ENTITY_PLAYER;
@@ -173,14 +174,32 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     // --- 2. GAME OVER ---
     if (model->state == STATE_GAME_OVER)
     {
-        if (cmd == CMD_UP || cmd == CMD_DOWN)
+        if (model->game_over_timer < 1.0f)
+            return;
+        if (cmd == CMD_EXIT)
+            exit(0);
+        if (cmd == CMD_UP)
         {
-            model->menu_selection = !model->menu_selection;
+            model->menu_selection--;
+            if (model->menu_selection < 0)
+                model->menu_selection = 2;
         }
-        else if (cmd == CMD_SHOOT)
+        else if (cmd == CMD_DOWN)
+        {
+            model->menu_selection++;
+            if (model->menu_selection > 2)
+                model->menu_selection = 0;
+        }
+        else if (cmd == CMD_SHOOT || cmd == CMD_RETURN)
         {
             if (model->menu_selection == 0)
-            { // REJOUER
+            {
+                // SAUVEGARDER
+                printf("Sauvegarde...\n"); // TODO: Ta fonction de save
+            }
+            else if (model->menu_selection == 1)
+            {
+                // REJOUER
                 model->score = 0;
                 model->lives = 3;
                 model->level = 1;
@@ -189,7 +208,8 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 model->state = STATE_PLAYING;
             }
             else
-            { // QUITTER
+            {
+                // QUITTER
                 exit(0);
             }
         }
@@ -238,9 +258,20 @@ void model_handle_input(GameModel *model, GameCommand cmd)
 
 void model_update(GameModel *model, double dt)
 {
+    if (model->state == STATE_GAME_OVER)
+    {
+        model->game_over_timer += dt; // <--- CETTE LIGNE EST CRUCIALE !
+        return;                       // On arrête ici pour ne pas bouger les ennemis
+    }
     if (model->state != STATE_PLAYING)
         return;
 
+    if (model->hit_timer > 0)
+    {
+        model->hit_timer -= dt;
+        // Pendant l'explosion, on peut empêcher le joueur de bouger si tu veux :
+        // model->player.dx = 0;
+    }
     // --- A. Mise à jour Joueur ---
     model->player.x += model->player.dx * dt;
     if (model->player.x < 0)
@@ -380,15 +411,26 @@ void model_update(GameModel *model, double dt)
             if (check_collision(b, &model->player))
             {
                 b->active = false;
-                model->lives--;
-                if (model->lives <= 0)
+
+                // SI ON N'EST PAS DÉJÀ EN TRAIN D'EXPLOSER
+                if (model->hit_timer <= 0)
                 {
-                    model->state = STATE_GAME_OVER;
-                    model->menu_selection = 0; // Reset curseur
-                }
-                else
-                {
-                    model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
+                    model->lives--;
+
+                    if (model->lives <= 0)
+                    {
+                        model->state = STATE_GAME_OVER;
+                        model->menu_selection = 0;
+                        model->game_over_timer = 0.0f;
+                    }
+                    else
+                    {
+                        // ON DÉCLENCHE L'EXPLOSION (pendant 1 seconde)
+                        model->hit_timer = 1.0f;
+
+                        // Optionnel : Reset position au centre
+                        // model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
+                    }
                 }
             }
         }

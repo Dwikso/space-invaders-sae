@@ -3,7 +3,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
-
+#include <stdlib.h>
 // --- Configuration des Ressources ---
 #define WIN_WIDTH 1024
 #define WIN_HEIGHT 768
@@ -23,6 +23,8 @@
 #define IMG_ENEMY3_B "assets/Sprites/Invaders/space__0005_C2.bmp"
 #define IMG_BULLET "assets/Sprites/Projectiles/missile_1.bmp"
 #define IMG_BG_MENU "assets/bg_menu_1.bmp"
+#define IMG_BG_MENU_1 "assets/bg_menu.bmp"
+
 #define IMG_BG_GAME "assets/background.bmp"
 // NOUVEAUX CHEMINS POUR LES COEURS
 #define IMG_HEART_FULL "assets/Sprites/heart_full.bmp"
@@ -33,6 +35,9 @@
 
 #define FONT_PATH "assets/fonts/LibertinusSerifDisplay-Regular.ttf"
 #define FONT_SIZE 28
+
+#define IMG_EXPLOSION_A "assets/Sprites/explosion/playerExplosionA.bmp"
+#define IMG_EXPLOSION_B "assets/Sprites/explosion/playerExplosionB.bmp"
 
 // Facteurs de mise à l'échelle (Model -> Pixels)
 static float SCALE_X = 1.0f;
@@ -53,11 +58,15 @@ static struct
     SDL_Texture *tex_enemy2[2];
     SDL_Texture *tex_enemy3[2];
     SDL_Texture *tex_bullet;
-    SDL_Texture *tex_bg_menu; // Fond du menu
-    SDL_Texture *tex_bg_game; // Fond du jeu
+    SDL_Texture *tex_bg_menu;   // Fond du menu
+    SDL_Texture *tex_bg_menu_1; // Fond du menu
+    SDL_Texture *tex_bg_game;   // Fond du jeu
     SDL_Texture *tex_heart_full;
     SDL_Texture *tex_heart_empty;
     SDL_Texture *blur_texture;
+    SDL_Texture *tex_blur; // <--- AJOUTE ÇA
+    SDL_Texture *tex_expl_a;
+    SDL_Texture *tex_expl_b;
 } ctx = {0};
 // --- Fonctions Utilitaires ---
 
@@ -113,23 +122,26 @@ static SDL_Texture *load_texture(const char *path)
 
     SDL_Texture *tex = SDL_CreateTextureFromSurface(ctx.renderer, surface);
     SDL_DestroySurface(surface); // Libération de la surface temporaire
-
-    if (!tex)
+    if (tex)
+    {
+        SDL_SetTextureScaleMode(tex, SDL_SCALEMODE_NEAREST);
+    }
+    else
     {
         fprintf(stderr, "[SDL] Erreur conversion texture %s : %s\n", path, SDL_GetError());
     }
     return tex;
 }
 
-static void draw_entity(SDL_Texture *tex, const Entity *e)
+static void draw_entity(SDL_Texture *tex, const Entity *e, int offset_x, int offset_y)
 {
     if (!e->active)
         return;
 
     // Conversion Coordonnées Modèle -> Pixels Écran
     SDL_FRect dst_rect = {
-        .x = e->x * SCALE_X,
-        .y = e->y * SCALE_Y,
+        .x = (e->x * SCALE_X) + offset_x, // <--- On ajoute le shake ici
+        .y = (e->y * SCALE_Y) + offset_y, // <--- Et ici
         .w = e->width * SCALE_X,
         .h = e->height * SCALE_Y};
 
@@ -164,14 +176,17 @@ static bool sdl_init(void)
         fprintf(stderr, "[TTF] Erreur chargement police: %s\n", SDL_GetError());
     }
 
-    ctx.window = SDL_CreateWindow("Space Invaders (SDL3)", WIN_WIDTH, WIN_HEIGHT, 0);
+    ctx.window = SDL_CreateWindow("Space Invaders", WIN_WIDTH, WIN_HEIGHT, SDL_WINDOW_RESIZABLE);
     if (!ctx.window)
         return false;
+    SDL_SetWindowMinimumSize(ctx.window, WIN_WIDTH, WIN_HEIGHT);
 
     ctx.renderer = SDL_CreateRenderer(ctx.window, NULL);
     if (!ctx.renderer)
         return false;
-
+    // On garde seulement 4 arguments
+    SDL_SetRenderLogicalPresentation(ctx.renderer, WIN_WIDTH, WIN_HEIGHT,
+                                     SDL_LOGICAL_PRESENTATION_LETTERBOX);
     SCALE_X = (float)WIN_WIDTH / GAME_WIDTH;
     SCALE_Y = (float)WIN_HEIGHT / GAME_HEIGHT;
 
@@ -188,8 +203,12 @@ static bool sdl_init(void)
     ctx.tex_player = load_texture(IMG_PLAYER);
     ctx.tex_bullet = load_texture(IMG_BULLET);
     ctx.tex_bg_menu = load_texture(IMG_BG_MENU);
+    ctx.tex_bg_menu_1 = load_texture(IMG_BG_MENU_1);
+
     ctx.tex_bg_game = load_texture(IMG_BG_GAME);
 
+    ctx.tex_expl_a = load_texture(IMG_EXPLOSION_A);
+    ctx.tex_expl_b = load_texture(IMG_EXPLOSION_B);
     // Petit warning si ça échoue (optionnel)
     if (!ctx.tex_bg_menu || !ctx.tex_bg_game)
     {
@@ -249,241 +268,250 @@ static void sdl_close(void)
     if (ctx.tex_heart_empty)
         SDL_DestroyTexture(ctx.tex_heart_empty);
 
+    if (ctx.tex_expl_a)
+        SDL_DestroyTexture(ctx.tex_expl_a);
+    if (ctx.tex_expl_b)
+        SDL_DestroyTexture(ctx.tex_expl_b);
+
     SDL_Quit();
 }
 
-// 3. Rendu
-static void sdl_render(const GameModel *model)
+// src/view_sdl.c
+
+static void draw_game_world(const GameModel *model)
 {
-    // 1. Nettoyage écran
-    SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255); // Fond noir pur
-    SDL_RenderClear(ctx.renderer);
+    // --- 1. CALCUL DU TREMBLEMENT (SHAKE) ---
+    int shake_x = 0;
+    int shake_y = 0;
 
-    // --- GESTION DU MENU ---
-    if (model->state == STATE_MENU)
+    // Si le joueur est en train d'exploser (hit_timer > 0)
+    if (model->hit_timer > 0)
     {
-        if (ctx.tex_bg_menu)
-        {
-            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu, NULL, NULL);
-        }
-        // A. Le Titre (Vert Alien)
-        SDL_Color color_title = {50, 255, 50, 255};
-        draw_text_centered("SPACE INVADERS", WIN_HEIGHT / 4, color_title, ctx.font_title);
-
-        // B. Les Options
-        const char *options[] = {"JOUER", "CHARGER", "QUITTER"};
-        SDL_Color col_selected = {255, 255, 255, 255}; // Blanc brillant
-        SDL_Color col_normal = {255, 255, 255, 255};   // Gris foncé
-
-        for (int i = 0; i < 3; i++)
-        {
-            char buffer[64];
-            SDL_Color c;
-            int y_pos = (WIN_HEIGHT / 2) + (i * 60);
-
-            if (i == model->menu_selection)
-            {
-                snprintf(buffer, sizeof(buffer), ">  %s  <", options[i]);
-                c = col_selected;
-            }
-            else
-            {
-                snprintf(buffer, sizeof(buffer), "%s", options[i]);
-                c = col_normal;
-            }
-            draw_text_centered(buffer, y_pos, c, ctx.font);
-        }
-
-        SDL_Color col_help = {0, 150, 255, 255};
-        draw_text_centered("Fleches: Naviguer  |  Espace: Valider", WIN_HEIGHT - 50, col_help, ctx.font);
-
-        SDL_RenderPresent(ctx.renderer);
-        return;
+        // Génère un nombre aléatoire entre -5 et +5 pixels
+        shake_x = (rand() % 10) - 5;
+        shake_y = (rand() % 10) - 5;
     }
 
-    // --- GESTION DU JEU (Si pas Menu) ---
-
-    // 2. Dessin Joueur -> EN VERT (0, 255, 0)
+    // --- A. FOND (Avec Shake) ---
     if (ctx.tex_bg_game)
     {
-        SDL_RenderTexture(ctx.renderer, ctx.tex_bg_game, NULL, NULL);
+        int w, h;
+        SDL_GetRenderOutputSize(ctx.renderer, &w, &h);
+        // On applique le shake au fond aussi pour un effet plus violent
+        SDL_FRect bg_rect = {(float)shake_x, (float)shake_y, (float)w, (float)h};
+        SDL_RenderTexture(ctx.renderer, ctx.tex_bg_game, NULL, &bg_rect);
     }
-    SDL_SetTextureColorMod(ctx.tex_player, 0, 255, 0);
-    draw_entity(ctx.tex_player, &model->player);
 
-    // --- DESSIN DES ENNEMIS (VERSION ANIMÉE) ---
-    // On récupère le frame actuel (0 ou 1)
+    // --- B. JOUEUR (Logique d'Explosion) ---
+    SDL_Texture *player_tex = ctx.tex_player;
+
+    if (model->hit_timer > 0)
+    {
+        // ANIMATION EXPLOSION : On alterne A et B toutes les 0.1 secondes
+        // (model->hit_timer * 10) convertit les secondes en dixièmes
+        int anim_frame = (int)(model->hit_timer * 10) % 2;
+
+        if (anim_frame == 0)
+            player_tex = ctx.tex_expl_a; // Image Explosion A
+        else
+            player_tex = ctx.tex_expl_b; // Image Explosion B
+
+        // On teinte en rouge/orange pour l'effet dégât
+        SDL_SetTextureColorMod(player_tex, 255, 100, 100);
+    }
+    else
+    {
+        // Joueur Normal (Vert)
+        SDL_SetTextureColorMod(player_tex, 0, 255, 0);
+    }
+
+    // Dessin du joueur avec le SHAKE
+    draw_entity(player_tex, &model->player, shake_x, shake_y);
+
+    // --- C. ENNEMIS (Avec Shake) ---
     int frame = model->animation_frame;
-
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
         if (model->enemies[i].active)
         {
-            SDL_Texture *current_tex = NULL;
+            SDL_Texture *t = ctx.tex_enemy1[frame];
 
             if (model->enemies[i].type == ENTITY_ENEMY_TYPE_2)
             {
-                current_tex = ctx.tex_enemy2[frame];
-                // Type 2 (Milieu) : ORANGE / JAUNE
-                SDL_SetTextureColorMod(current_tex, 255, 165, 0);
+                t = ctx.tex_enemy2[frame];
+                SDL_SetTextureColorMod(t, 255, 165, 0); // Orange
             }
             else if (model->enemies[i].type == ENTITY_ENEMY_TYPE_3)
             {
-                current_tex = ctx.tex_enemy3[frame];
-                // Type 3 (Haut - Squid) : ROUGE / ROSE
-                SDL_SetTextureColorMod(current_tex, 255, 50, 50);
+                t = ctx.tex_enemy3[frame];
+                SDL_SetTextureColorMod(t, 255, 50, 50); // Rouge
             }
             else
             {
-                current_tex = ctx.tex_enemy1[frame];
-                // Type 1 (Bas - Type par défaut) : CYAN / BLEU CLAIR
-                SDL_SetTextureColorMod(current_tex, 0, 255, 255);
+                SDL_SetTextureColorMod(t, 0, 255, 255); // Cyan
             }
 
-            draw_entity(current_tex, &model->enemies[i]);
+            // On applique shake_x, shake_y aux ennemis aussi
+            draw_entity(t, &model->enemies[i], shake_x, shake_y);
 
-            // IMPORTANT : On remet la couleur à BLANC (Normal) après dessin
-            // pour ne pas teinter les autres si on réutilise la texture ailleurs
-            SDL_SetTextureColorMod(current_tex, 255, 255, 255);
+            SDL_SetTextureColorMod(t, 255, 255, 255); // Reset couleur
         }
     }
 
-    // 4. Dessin Balles -> BLANC PUR (ou Rouge pour les ennemis ?)
-    // On peut différencier les balles joueur/ennemi si on veut
+    // --- D. BALLES (Avec Shake) ---
     for (int i = 0; i < MAX_BULLETS; i++)
     {
         if (model->bullets[i].active)
         {
             if (model->bullets[i].type == ENTITY_BULLET_ENEMY)
-            {
-                SDL_SetTextureColorMod(ctx.tex_bullet, 255, 0, 0); // Balle ennemie ROUGE
-            }
+                SDL_SetTextureColorMod(ctx.tex_bullet, 255, 0, 0);
             else
-            {
-                SDL_SetTextureColorMod(ctx.tex_bullet, 255, 255, 0); // Balle joueur JAUNE
-            }
-            draw_entity(ctx.tex_bullet, &model->bullets[i]);
+                SDL_SetTextureColorMod(ctx.tex_bullet, 255, 255, 0);
+
+            // On applique shake_x, shake_y aux balles
+            draw_entity(ctx.tex_bullet, &model->bullets[i], shake_x, shake_y);
         }
-    }
-    // 4. Interface en jeu (HUD)
-    SDL_Color white = {255, 255, 255, 255};
-    char hud_text[64];
-
-    snprintf(hud_text, sizeof(hud_text), "SCORE: %d", model->score);
-    draw_text(hud_text, 20, 20, white);
-
-    // Calcul de la position de départ (Haut Droite)
-    int total_width = (MAX_LIVES_DISPLAY * HEART_UI_SIZE) + ((MAX_LIVES_DISPLAY - 1) * HEART_SPACING);
-    int start_x = WIN_WIDTH - total_width - 20; // Marge de 20px à droite
-    int start_y = 20;                           // Marge de 20px en haut
-
-    for (int i = 0; i < MAX_LIVES_DISPLAY; i++)
-    {
-        SDL_Texture *tex_to_draw;
-
-        // Logique : Si l'index 'i' est inférieur au nombre de vies restantes, c'est un coeur plein.
-        // Sinon (si on a perdu cette vie), c'est un coeur vide.
-        // Ex: 2 vies restantes -> i=0 (Plein), i=1 (Plein), i=2 (Vide)
-        if (i < model->lives)
-        {
-            tex_to_draw = ctx.tex_heart_full;
-        }
-        else
-        {
-            tex_to_draw = ctx.tex_heart_empty;
-        }
-
-        // Définition de la zone de dessin sur l'écran (UI)
-        SDL_FRect dst_rect = {
-            (float)(start_x + i * (HEART_UI_SIZE + HEART_SPACING)), // Position X qui se décale
-            (float)start_y,
-            (float)HEART_UI_SIZE, // Largeur forcée
-            (float)HEART_UI_SIZE  // Hauteur forcée
-        };
-
-        // On dessine directement (pas besoin de draw_entity car c'est de l'UI, pas du jeu)
-        if (tex_to_draw)
-        {
-            // Optionnel : remettre la couleur à blanc si tu as joué avec les couleurs avant
-            SDL_SetTextureColorMod(tex_to_draw, 255, 255, 255);
-            SDL_RenderTexture(ctx.renderer, tex_to_draw, NULL, &dst_rect);
-        }
-    }
-
-    // 5. Game Over
-    if (model->state == STATE_GAME_OVER)
-{
-    // 1. GÉNÉRATION DU FLOU (une seule fois au moment du Game Over)
-    if (ctx.blur_texture == NULL)
-    {
-        // Création d'une texture 8x plus petite que la fenêtre
-        ctx.blur_texture = SDL_CreateTexture(ctx.renderer, SDL_PIXELFORMAT_RGBA8888, 
-                                            SDL_TEXTUREACCESS_TARGET, 
-                                            WIN_WIDTH / 8, WIN_HEIGHT / 8);
-        
-        if (ctx.blur_texture) {
-            // Activer le filtrage linéaire pour l'effet de flou lors du redimensionnement
-            SDL_SetTextureScaleMode(ctx.blur_texture, SDL_SCALEMODE_LINEAR);
-
-            // Rediriger le rendu vers la texture de flou
-            SDL_SetRenderTarget(ctx.renderer, ctx.blur_texture);
-            
-            // DESSINER ICI LE MONDE DU JEU (sans l'UI de Game Over)
-            // Exemple : draw_game_world(model, &ctx); 
-            
-            // Revenir au rendu principal (l'écran)
-            SDL_SetRenderTarget(ctx.renderer, NULL);
-        }
-    }
-
-    // 2. AFFICHAGE DU FLOU
-    if (ctx.blur_texture) {
-        // On dessine la petite texture sur tout l'écran (SDL3 gère l'étirement flou)
-        SDL_RenderTexture(ctx.renderer, ctx.blur_texture, NULL, NULL);
-    }
-
-    // 3. VOILE SOMBRE (Overlay)
-    // Pour que le texte ressorte bien sur le flou
-    SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 160); // Noir à 60% d'opacité
-    SDL_RenderFillRect(ctx.renderer, NULL);
-
-    // 4. TITRE "GAME OVER"
-    SDL_Color red = {255, 0, 0, 255};
-    draw_text_centered("GAME OVER", WIN_HEIGHT / 2 - 80, red, ctx.font_title);
-
-    // 5. SCORE
-    char score_final[32];
-    SDL_Color white = {255, 255, 255, 255};
-    snprintf(score_final, sizeof(score_final), "Score Final: %d", model->score);
-    draw_text_centered(score_final, WIN_HEIGHT / 2 - 10, white, ctx.font);
-
-    // 6. MENU REJOUER / QUITTER
-    const char *go_options[] = {"REJOUER", "QUITTER"};
-    SDL_Color col_sel = {255, 255, 255, 255};
-    SDL_Color col_norm = {150, 150, 150, 255};
-
-    for (int i = 0; i < 2; i++)
-    {
-        char buffer[64];
-        SDL_Color c;
-        int y_pos = (WIN_HEIGHT / 2) + 60 + (i * 50);
-
-        if (i == model->menu_selection)
-        {
-            snprintf(buffer, sizeof(buffer), "> %s <", go_options[i]);
-            c = col_sel;
-        }
-        else
-        {
-            snprintf(buffer, sizeof(buffer), "%s", go_options[i]);
-            c = col_norm;
-        }
-        draw_text_centered(buffer, y_pos, c, ctx.font);
     }
 }
 
-    SDL_RenderPresent(ctx.renderer);
+// 3. Rendu
+static void sdl_render(const GameModel *model)
+{
+    // --- JEU & PAUSE ---
+    if (model->state == STATE_PLAYING || model->state == STATE_PAUSED)
+    {
+        if (ctx.tex_blur)
+        {
+            SDL_DestroyTexture(ctx.tex_blur);
+            ctx.tex_blur = NULL;
+        }
+
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255);
+        SDL_RenderClear(ctx.renderer);
+
+        // 1. DESSIN DU MONDE (Inclus Explosion & Shake)
+        draw_game_world(model);
+
+        // 2. HUD
+        SDL_Color white = {255, 255, 255, 255};
+        char hud[64];
+        snprintf(hud, sizeof(hud), "SCORE: %d", model->score);
+        draw_text(hud, 20, 20, white);
+
+        // Coeurs
+        int start_x = WIN_WIDTH - (3 * 37) - 20;
+        for (int i = 0; i < 3; i++)
+        {
+            SDL_Texture *hrt = (i < model->lives) ? ctx.tex_heart_full : ctx.tex_heart_empty;
+            SDL_FRect r = {(float)(start_x + i * 37), 20, 32, 32};
+            if (hrt)
+            {
+                SDL_SetTextureColorMod(hrt, 255, 255, 255); // Reset couleur
+                SDL_RenderTexture(ctx.renderer, hrt, NULL, &r);
+            }
+        }
+
+        SDL_RenderPresent(ctx.renderer);
+        return;
+    }
+
+    // --- MENU PRINCIPAL ---
+    if (model->state == STATE_MENU)
+    {
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255);
+        SDL_RenderClear(ctx.renderer);
+        if (ctx.tex_bg_menu)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu, NULL, NULL);
+
+        SDL_Color green = {50, 255, 50, 255};
+        draw_text_centered("SPACE INVADERS", WIN_HEIGHT / 4, green, ctx.font_title);
+
+        const char *opts[] = {"JOUER", "CHARGER", "QUITTER"};
+        for (int i = 0; i < 3; i++)
+        {
+            char buf[64];
+            SDL_Color c = (i == model->menu_selection) ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){100, 100, 100, 255};
+            snprintf(buf, sizeof(buf), (i == model->menu_selection) ? "> %s <" : "%s", opts[i]);
+            draw_text_centered(buf, WIN_HEIGHT / 2 + i * 60, c, ctx.font);
+        }
+        SDL_RenderPresent(ctx.renderer);
+        return;
+    }
+
+    // --- GAME OVER ---
+    // --- GAME OVER (FOND MENU FLOU + 3 OPTIONS) ---
+    if (model->state == STATE_GAME_OVER)
+    {
+        // A. Génération du flou (une seule fois au début du Game Over)
+        if (!ctx.tex_blur)
+        {
+            // On crée une texture toute petite (1/8ème de l'écran)
+            ctx.tex_blur = SDL_CreateTexture(ctx.renderer, SDL_PIXELFORMAT_RGBA8888,
+                                             SDL_TEXTUREACCESS_TARGET, WIN_WIDTH / 8, WIN_HEIGHT / 8);
+            if (ctx.tex_blur)
+            {
+                SDL_SetTextureScaleMode(ctx.tex_blur, SDL_SCALEMODE_LINEAR); // Pour l'effet flou
+
+                // On redirige le dessin vers la texture
+                SDL_SetRenderTarget(ctx.renderer, ctx.tex_blur);
+
+                // --- MODIFICATION ICI ---
+                // Au lieu de dessiner le jeu (draw_game_world), on dessine bg_menu
+                if (ctx.tex_bg_menu_1)
+                {
+                    // NULL, NULL = Remplir toute la texture avec l'image
+                    SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
+                }
+                else
+                {
+                    // Sécurité : Fond noir si l'image manque
+                    SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255);
+                    SDL_RenderClear(ctx.renderer);
+                }
+                // ------------------------
+
+                // On remet le dessin vers l'écran
+                SDL_SetRenderTarget(ctx.renderer, NULL);
+            }
+        }
+
+        // B. Rendu à l'écran
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255);
+        SDL_RenderClear(ctx.renderer);
+
+        // 1. On affiche la texture (qui contient bg_menu en petit) étirée -> FLOU
+        if (ctx.tex_blur)
+            SDL_RenderTexture(ctx.renderer, ctx.tex_blur, NULL, NULL);
+
+        // 2. Voile Noir (Optionnel, pour lisibilité)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 100); // Un peu moins sombre qu'avant
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        // 3. Titre
+        SDL_Color red = {255, 0, 0, 255};
+        draw_text_centered("GAME OVER", WIN_HEIGHT / 4, red, ctx.font_title);
+
+        // 4. Score
+        char s_txt[32];
+        SDL_Color white = {255, 255, 255, 255};
+        snprintf(s_txt, sizeof(s_txt), "Score Final: %d", model->score);
+        draw_text_centered(s_txt, WIN_HEIGHT / 2 - 50, white, ctx.font);
+
+        // 5. Menu 3 Options
+        const char *go_opts[] = {"SAUVEGARDER", "REJOUER", "QUITTER"};
+        for (int i = 0; i < 3; i++)
+        {
+            char buf[64];
+            // Couleur sélectionnée (Blanc) vs Normale (Gris)
+            SDL_Color c = (i == model->menu_selection) ? (SDL_Color){255, 255, 255, 255} : (SDL_Color){150, 150, 150, 255};
+            snprintf(buf, sizeof(buf), (i == model->menu_selection) ? "> %s <" : "%s", go_opts[i]);
+            draw_text_centered(buf, WIN_HEIGHT / 2 + 30 + i * 60, c, ctx.font);
+        }
+
+        SDL_RenderPresent(ctx.renderer);
+    }
 }
 // 4. Entrées
 static GameCommand sdl_get_input(void)
@@ -503,6 +531,18 @@ static GameCommand sdl_get_input(void)
             case SDLK_Q:
                 return CMD_EXIT;
 
+                // --- PLEIN ÉCRAN (F11) ---
+            case SDLK_F11:
+            {
+                // On récupère les flags actuels de la fenêtre
+                SDL_WindowFlags flags = SDL_GetWindowFlags(ctx.window);
+
+                // Si on est déjà en Fullscreen, on passe en fenêtré (false)
+                // Sinon on passe en Fullscreen (true)
+                bool is_fullscreen = (flags & SDL_WINDOW_FULLSCREEN);
+                SDL_SetWindowFullscreen(ctx.window, !is_fullscreen);
+                break;
+            }
             // --- Navigation Menu ---
             case SDLK_UP:
                 return CMD_UP;

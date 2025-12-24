@@ -58,6 +58,7 @@ typedef struct
     int drop_direction;    // 1 = descend, -1 = monte
     int drop_step_count;   // Compteur : de 0 à 4
     float game_over_timer; // <--- AJOUTE CA (Compteur de temps pour le Game Over)
+    float hit_timer;
 
 } GameModel;
 
