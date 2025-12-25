@@ -200,8 +200,7 @@ static void ncurses_render(const GameModel *model)
 
     if (draw_game)
     {
-        mvprintw(off_y - 1, off_x, " SCORE: %d | VIES: %d | NIV: %d ", model->score, model->lives, model->level);
-
+        mvprintw(off_y - 1, off_x, " SCORE: %d | VIES: %d | NIVEAU: %d ", model->score, model->lives, model->level);
         // JOUEUR
         if (model->player.active)
         {

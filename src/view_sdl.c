@@ -485,7 +485,7 @@ static void sdl_render(const GameModel *model)
         // 2. HUD
         SDL_Color white = {255, 255, 255, 255};
         char hud[64];
-        snprintf(hud, sizeof(hud), "SCORE: %d", model->score);
+        snprintf(hud, sizeof(hud), "SCORE: %d   NIVEAU: %d", model->score, model->level);
         draw_text(hud, 20, 20, white);
 
         // Coeurs

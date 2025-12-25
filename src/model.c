@@ -821,10 +821,11 @@ void model_update(GameModel *model, double dt)
         }
     }
 
-    // --- D. Gestion Ennemis (Mouvement) ---
+    // --- D. Gestion Ennemis (Logique Vitesse Constante par Niveau) ---
     bool touch_edge = false;
     int active_enemies = 0;
 
+    // 1. Compter les vivants
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
         if (!model->enemies[i].active)
@@ -838,19 +839,33 @@ void model_update(GameModel *model, double dt)
         }
     }
 
+    // 2. PASSAGE AU NIVEAU SUIVANT
     if (active_enemies == 0)
     {
-        init_enemies(model);
         model->level++;
-        model->enemy_speed_mult += 0.2f;
-        // On remet le spawn UFO à false pour le nouveau niveau
+        init_enemies(model);
+
+        // Reset positions
+        model->drop_direction = 1;
+        model->drop_step_count = 0;
+        model->direction_enemies = 1;
         model->ufo.hasSpawnedThisLevel = false;
+
+        // --- CALCUL VITESSE DU NOUVEAU NIVEAU ---
+        // Niveau 1 = 1.0 (100%)
+        // Niveau 2 = 1.2 (120%)
+        // Niveau 3 = 1.4 (140%)
+        // Ça reste FIXE jusqu'à la fin du niveau
+        model->enemy_speed_mult = 1.0f + ((model->level - 1) * 0.2f);
+
         return;
     }
 
+    // 3. MOUVEMENT (VITESSE CONSTANTE)
     if (touch_edge)
     {
-        model->direction_enemies *= -1;
+        model->direction_enemies *= -1; // Demi-tour
+
         float move_y = 0;
         if (model->drop_direction == 1)
         {
@@ -875,11 +890,13 @@ void model_update(GameModel *model, double dt)
                 model->enemies[i].x += model->direction_enemies * 2.0f;
             }
         }
-        model->enemy_speed_mult += 0.05f;
+        // IMPORTANT : On n'augmente PAS la vitesse ici. Elle est constante.
     }
     else
     {
+        // On utilise simplement le multiplicateur du niveau calculé au début
         float speed = ENEMY_SPEED_BASE * model->enemy_speed_mult * model->direction_enemies;
+
         for (int i = 0; i < MAX_ENEMIES; i++)
         {
             if (model->enemies[i].active)
