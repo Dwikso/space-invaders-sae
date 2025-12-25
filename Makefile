@@ -113,4 +113,7 @@ run-ncurses: all
 run-sdl: all
 	./$(TARGET) sdl
 
-.PHONY: all clean clean-all run-ncurses run-sdl dirs check-sdl3-ttf compile-sdl3-ttf check-sdl3-mixer compile-sdl3-mixer
+doc:
+	doxygen Doxyfile
+
+.PHONY: all clean doc clean-all run-ncurses run-sdl dirs check-sdl3-ttf compile-sdl3-ttf check-sdl3-mixer compile-sdl3-mixer

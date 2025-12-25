@@ -1,0 +1,378 @@
+\doxysection{include/model.h File Reference}
+\hypertarget{model_8h}{}\label{model_8h}\index{include/model.h@{include/model.h}}
+
+
+Définition du modèle de données (Data Model) du jeu Space Invaders.  
+
+
+{\ttfamily \#include "{}common.\+h"{}}\newline
+{\ttfamily \#include "{}controller.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structEntity}{Entity}}
+\begin{DoxyCompactList}\small\item\em Représente une entité générique du jeu (Vaisseau, Ennemi, Projectile). \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structUfo}{Ufo}}
+\begin{DoxyCompactList}\small\item\em Structure spécifique pour l\textquotesingle{}OVNI bonus (Mystery Ship). \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structShield}{Shield}}
+\begin{DoxyCompactList}\small\item\em Représente un bunker/bouclier destructible. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structSoundState}{Sound\+State}}
+\begin{DoxyCompactList}\small\item\em Système de drapeaux (Flags) pour le moteur audio. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structGameModel}{Game\+Model}}
+\begin{DoxyCompactList}\small\item\em Structure principale du modèle (God Object). \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Macros}
+\begin{Indent}\textbf{ Système de Sauvegarde}\par
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{model_8h_a66f57b801049415c022575f61752608a}\label{model_8h_a66f57b801049415c022575f61752608a} 
+\#define {\bfseries MAX\+\_\+\+SAVE\+\_\+\+FILES}~10
+\begin{DoxyCompactList}\small\item\em Nombre maximum de fichiers de sauvegarde détectés. \end{DoxyCompactList}\item 
+\Hypertarget{model_8h_acc9794f655f61a3246ba3fd5c9c67e14}\label{model_8h_acc9794f655f61a3246ba3fd5c9c67e14} 
+\#define {\bfseries MAX\+\_\+\+FILENAME\+\_\+\+LEN}~32
+\begin{DoxyCompactList}\small\item\em Longueur maximale d\textquotesingle{}un nom de fichier. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\end{Indent}
+\begin{Indent}\textbf{ Configuration Gameplay}\par
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{model_8h_aa57a2db336697f4bb00a14e6491f4fe2}\label{model_8h_aa57a2db336697f4bb00a14e6491f4fe2} 
+\#define {\bfseries MAX\+\_\+\+SHIELDS}~4
+\begin{DoxyCompactList}\small\item\em Nombre de boucliers (bunkers) \end{DoxyCompactList}\item 
+\Hypertarget{model_8h_a549ca2a26e391c3f53ef6d950f19c63e}\label{model_8h_a549ca2a26e391c3f53ef6d950f19c63e} 
+\#define {\bfseries SHIELD\+\_\+\+MAX\+\_\+\+HEALTH}~10
+\begin{DoxyCompactList}\small\item\em Points de vie d\textquotesingle{}un bouclier (1 état intact + 9 états de dégâts) \end{DoxyCompactList}\item 
+\Hypertarget{model_8h_af7bef2aee6b9eba9cc7303f64535d37f}\label{model_8h_af7bef2aee6b9eba9cc7303f64535d37f} 
+\#define {\bfseries MAX\+\_\+\+LIVES\+\_\+\+NORMAL}~3
+\begin{DoxyCompactList}\small\item\em Nombre de vies de départ. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\end{Indent}
+\begin{Indent}\textbf{ Configuration UFO (OVNI)}\par
+\begin{DoxyCompactItemize}
+\item 
+\Hypertarget{model_8h_a29d7d9ca318ac07cb3734ddaa1374af4}\label{model_8h_a29d7d9ca318ac07cb3734ddaa1374af4} 
+\#define {\bfseries UFO\+\_\+\+POINTS}~60
+\begin{DoxyCompactList}\small\item\em Points gagnés en détruisant l\textquotesingle{}OVNI. \end{DoxyCompactList}\item 
+\Hypertarget{model_8h_a84da6aba803715c96a8ce91109cb5965}\label{model_8h_a84da6aba803715c96a8ce91109cb5965} 
+\#define {\bfseries UFO\+\_\+\+SPEED}~10.\+0f
+\begin{DoxyCompactList}\small\item\em Vitesse de déplacement horizontal de l\textquotesingle{}OVNI. \end{DoxyCompactList}\item 
+\Hypertarget{model_8h_a93667909f2affcfc9412bf977d7db48b}\label{model_8h_a93667909f2affcfc9412bf977d7db48b} 
+\#define {\bfseries UFO\+\_\+\+WIDTH}~4
+\begin{DoxyCompactList}\small\item\em Largeur logique de l\textquotesingle{}OVNI. \end{DoxyCompactList}\item 
+\Hypertarget{model_8h_a8e65a9f5d58f90b051598ee4dc41f86d}\label{model_8h_a8e65a9f5d58f90b051598ee4dc41f86d} 
+\#define {\bfseries UFO\+\_\+\+HEIGHT}~2
+\begin{DoxyCompactList}\small\item\em Hauteur logique de l\textquotesingle{}OVNI. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\end{Indent}
+\doxysubsubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum \mbox{\hyperlink{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44}{Entity\+Type}} \{ \newline
+\mbox{\hyperlink{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44afe001c60f424227b9cb28c1cb272a77b}{ENTITY\+\_\+\+PLAYER}}
+, \mbox{\hyperlink{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a60c11396b8a7cceccae7e908a7ca9095}{ENTITY\+\_\+\+BULLET\+\_\+\+PLAYER}}
+, \mbox{\hyperlink{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a34f59555fc08d69d7b1cad9eb099a333}{ENTITY\+\_\+\+BULLET\+\_\+\+ENEMY}}
+, \mbox{\hyperlink{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44af0f90ff67edba9cbc79d61e41d64e753}{ENTITY\+\_\+\+ENEMY\+\_\+\+TYPE\+\_\+1}}
+, \newline
+\mbox{\hyperlink{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a4a67607c00736aebf1f2272e8bf77d1d}{ENTITY\+\_\+\+ENEMY\+\_\+\+TYPE\+\_\+2}}
+, \mbox{\hyperlink{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44ad166fe8b3c0c53ee628112e7e9b24375}{ENTITY\+\_\+\+ENEMY\+\_\+\+TYPE\+\_\+3}}
+ \}
+\begin{DoxyCompactList}\small\item\em Types d\textquotesingle{}entités présentes dans le jeu. Utiliser pour distinguer le comportement lors du rendu et des collisions. \end{DoxyCompactList}\item 
+enum \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873d}{Game\+State\+Enum}} \{ \newline
+\mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873da8211ee7ceda72b3c0e9b4a547acb471b}{STATE\+\_\+\+MENU}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873daf8f1d4013be7a14c51495005d39e7c0e}{STATE\+\_\+\+PLAYING}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873da6291ce9aab12208cc66968c97a1ce7dd}{STATE\+\_\+\+PAUSED}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873da7a269f17ef4e74b0120f10ce16de7424}{STATE\+\_\+\+TUTORIAL}}
+, \newline
+\mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873da0f76ed984e8b06e62cddac03843a9544}{STATE\+\_\+\+GAME\+\_\+\+OVER}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873da45b6e987a799cd66b28f371b03fa34a9}{STATE\+\_\+\+VICTORY}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873daac72d3ff2ae4980ede1bf1c37ad69f70}{STATE\+\_\+\+CONFIRM\+\_\+\+QUIT}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873da2024dc0aa1a5c0ae0f7576d52539dd7a}{STATE\+\_\+\+SAVE\+\_\+\+INPUT}}
+, \newline
+\mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873dab7d817345074afa03a68df82fc6df826}{STATE\+\_\+\+LOAD\+\_\+\+MENU}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873da37136699d4dfdfd72af616b4fd3eaf44}{STATE\+\_\+\+OVERWRITE\+\_\+\+CONFIRM}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873daaac162430f45a99e07f2d8e377981b1b}{STATE\+\_\+\+SAVE\+\_\+\+SELECT}}
+, \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873da7d39535076c8ccde1a069edbd550f1d3}{STATE\+\_\+\+SAVE\+\_\+\+SUCCESS}}
+ \}
+\begin{DoxyCompactList}\small\item\em États possibles de la machine à états du jeu (FSM). Gère les transitions entre les différents écrans et modes. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{model_8h_a7f6d8e6b6c393548b29cd05c672a5fe4}{model\+\_\+init}} (void)
+\begin{DoxyCompactList}\small\item\em Initialise le modèle de jeu. Alloue la mémoire et configure les valeurs par défaut. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{model_8h_a4660b19c738e8c7fdc631585d0bc858e}{model\+\_\+free}} (\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model)
+\begin{DoxyCompactList}\small\item\em Libère la mémoire allouée pour le modèle. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{model_8h_a92ee0410272ecbd81bb7ab7ed8d912fd}{model\+\_\+update}} (\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model, double dt)
+\begin{DoxyCompactList}\small\item\em Met à jour la logique du jeu pour une frame. Gère les déplacements, collisions, timers et changements d\textquotesingle{}états. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{model_8h_ae400e8f868c134818f339507b11184d4}{model\+\_\+handle\+\_\+input}} (\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model, \mbox{\hyperlink{controller_8h_abc5a0df439bf92177bc39309fe831280}{Game\+Command}} cmd)
+\begin{DoxyCompactList}\small\item\em Traite une commande utilisateur (Input). Modifie l\textquotesingle{}état du modèle en fonction de l\textquotesingle{}action demandée (Tir, Mouvement, Menu). \end{DoxyCompactList}\item 
+const \mbox{\hyperlink{structEntity}{Entity}} \texorpdfstring{$\ast$}{*} \mbox{\hyperlink{model_8h_ab85ec1d4e65602284723f6a4a2fa978b}{model\+\_\+get\+\_\+player}} (const \mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model)
+\begin{DoxyCompactList}\small\item\em Récupère un pointeur en lecture seule vers le joueur. Utile pour la vue si elle a besoin d\textquotesingle{}infos spécifiques sans modifier. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{model_8h_af1d995c89f2c13363f6648b3884b42ea}{model\+\_\+scan\+\_\+saves}} (\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model)
+\begin{DoxyCompactList}\small\item\em Scanne le répertoire des sauvegardes pour remplir la liste save\+\_\+files. Met à jour model-\/\texorpdfstring{$>$}{>}save\+\_\+files et model-\/\texorpdfstring{$>$}{>}save\+\_\+file\+\_\+count. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{model_8h_a1b710e808411bdeb72f1353b82ffcc9c}{model\+\_\+save\+\_\+named}} (const \mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model, const char \texorpdfstring{$\ast$}{*}filename)
+\begin{DoxyCompactList}\small\item\em Sauvegarde l\textquotesingle{}état actuel du jeu dans un fichier spécifique. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{model_8h_ab08aabb686c74da7bd503dfd03abee12}{model\+\_\+load\+\_\+named}} (\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model, const char \texorpdfstring{$\ast$}{*}filename)
+\begin{DoxyCompactList}\small\item\em Charge un état de jeu depuis un fichier. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Définition du modèle de données (Data Model) du jeu Space Invaders. 
+
+Ce fichier contient toutes les structures de données représentant l\textquotesingle{}état du jeu, les constantes de gameplay, ainsi que les prototypes des fonctions de manipulation du modèle (MVC).
+
+\begin{DoxyDate}{Date}
+2024 
+\end{DoxyDate}
+
+
+\label{doc-enum-members}
+\Hypertarget{model_8h_doc-enum-members}
+\doxysubsection{Enumeration Type Documentation}
+\Hypertarget{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44}\index{model.h@{model.h}!EntityType@{EntityType}}
+\index{EntityType@{EntityType}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{EntityType}{EntityType}}
+{\footnotesize\ttfamily \label{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44} 
+enum \mbox{\hyperlink{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44}{Entity\+Type}}}
+
+
+
+Types d\textquotesingle{}entités présentes dans le jeu. Utiliser pour distinguer le comportement lors du rendu et des collisions. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ENTITY\_PLAYER@{ENTITY\_PLAYER}!model.h@{model.h}}\index{model.h@{model.h}!ENTITY\_PLAYER@{ENTITY\_PLAYER}}}\Hypertarget{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44afe001c60f424227b9cb28c1cb272a77b}\label{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44afe001c60f424227b9cb28c1cb272a77b} 
+ENTITY\+\_\+\+PLAYER&Le vaisseau du joueur. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ENTITY\_BULLET\_PLAYER@{ENTITY\_BULLET\_PLAYER}!model.h@{model.h}}\index{model.h@{model.h}!ENTITY\_BULLET\_PLAYER@{ENTITY\_BULLET\_PLAYER}}}\Hypertarget{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a60c11396b8a7cceccae7e908a7ca9095}\label{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a60c11396b8a7cceccae7e908a7ca9095} 
+ENTITY\+\_\+\+BULLET\+\_\+\+PLAYER&Projectile tiré par le joueur. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ENTITY\_BULLET\_ENEMY@{ENTITY\_BULLET\_ENEMY}!model.h@{model.h}}\index{model.h@{model.h}!ENTITY\_BULLET\_ENEMY@{ENTITY\_BULLET\_ENEMY}}}\Hypertarget{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a34f59555fc08d69d7b1cad9eb099a333}\label{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a34f59555fc08d69d7b1cad9eb099a333} 
+ENTITY\+\_\+\+BULLET\+\_\+\+ENEMY&Projectile tiré par un ennemi. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ENTITY\_ENEMY\_TYPE\_1@{ENTITY\_ENEMY\_TYPE\_1}!model.h@{model.h}}\index{model.h@{model.h}!ENTITY\_ENEMY\_TYPE\_1@{ENTITY\_ENEMY\_TYPE\_1}}}\Hypertarget{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44af0f90ff67edba9cbc79d61e41d64e753}\label{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44af0f90ff67edba9cbc79d61e41d64e753} 
+ENTITY\+\_\+\+ENEMY\+\_\+\+TYPE\+\_\+1&Ennemi rangée du bas (10 pts) -\/ "{}\+Octopus"{}. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ENTITY\_ENEMY\_TYPE\_2@{ENTITY\_ENEMY\_TYPE\_2}!model.h@{model.h}}\index{model.h@{model.h}!ENTITY\_ENEMY\_TYPE\_2@{ENTITY\_ENEMY\_TYPE\_2}}}\Hypertarget{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a4a67607c00736aebf1f2272e8bf77d1d}\label{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44a4a67607c00736aebf1f2272e8bf77d1d} 
+ENTITY\+\_\+\+ENEMY\+\_\+\+TYPE\+\_\+2&Ennemi rangée du milieu (20 pts) -\/ "{}\+Crab"{}. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ENTITY\_ENEMY\_TYPE\_3@{ENTITY\_ENEMY\_TYPE\_3}!model.h@{model.h}}\index{model.h@{model.h}!ENTITY\_ENEMY\_TYPE\_3@{ENTITY\_ENEMY\_TYPE\_3}}}\Hypertarget{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44ad166fe8b3c0c53ee628112e7e9b24375}\label{model_8h_ad79a57ed3105eb60d991a1aeb4a9dc44ad166fe8b3c0c53ee628112e7e9b24375} 
+ENTITY\+\_\+\+ENEMY\+\_\+\+TYPE\+\_\+3&Ennemi rangée du haut (40 pts) -\/ "{}\+Squid"{}. \\
+\hline
+
+\end{DoxyEnumFields}
+\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873d}\index{model.h@{model.h}!GameStateEnum@{GameStateEnum}}
+\index{GameStateEnum@{GameStateEnum}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{GameStateEnum}{GameStateEnum}}
+{\footnotesize\ttfamily \label{model_8h_a28b2e38d97689acd8aa713262f6f873d} 
+enum \mbox{\hyperlink{model_8h_a28b2e38d97689acd8aa713262f6f873d}{Game\+State\+Enum}}}
+
+
+
+États possibles de la machine à états du jeu (FSM). Gère les transitions entre les différents écrans et modes. 
+
+\begin{DoxyEnumFields}[2]{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_MENU@{STATE\_MENU}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_MENU@{STATE\_MENU}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873da8211ee7ceda72b3c0e9b4a547acb471b}\label{model_8h_a28b2e38d97689acd8aa713262f6f873da8211ee7ceda72b3c0e9b4a547acb471b} 
+STATE\+\_\+\+MENU&Menu principal. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_PLAYING@{STATE\_PLAYING}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_PLAYING@{STATE\_PLAYING}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873daf8f1d4013be7a14c51495005d39e7c0e}\label{model_8h_a28b2e38d97689acd8aa713262f6f873daf8f1d4013be7a14c51495005d39e7c0e} 
+STATE\+\_\+\+PLAYING&Jeu en cours. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_PAUSED@{STATE\_PAUSED}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_PAUSED@{STATE\_PAUSED}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873da6291ce9aab12208cc66968c97a1ce7dd}\label{model_8h_a28b2e38d97689acd8aa713262f6f873da6291ce9aab12208cc66968c97a1ce7dd} 
+STATE\+\_\+\+PAUSED&Jeu en pause (avec menu contextuel) \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_TUTORIAL@{STATE\_TUTORIAL}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_TUTORIAL@{STATE\_TUTORIAL}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873da7a269f17ef4e74b0120f10ce16de7424}\label{model_8h_a28b2e38d97689acd8aa713262f6f873da7a269f17ef4e74b0120f10ce16de7424} 
+STATE\+\_\+\+TUTORIAL&Écran d\textquotesingle{}explication des touches. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_GAME\_OVER@{STATE\_GAME\_OVER}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_GAME\_OVER@{STATE\_GAME\_OVER}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873da0f76ed984e8b06e62cddac03843a9544}\label{model_8h_a28b2e38d97689acd8aa713262f6f873da0f76ed984e8b06e62cddac03843a9544} 
+STATE\+\_\+\+GAME\+\_\+\+OVER&Écran de fin de partie (Défaite) \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_VICTORY@{STATE\_VICTORY}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_VICTORY@{STATE\_VICTORY}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873da45b6e987a799cd66b28f371b03fa34a9}\label{model_8h_a28b2e38d97689acd8aa713262f6f873da45b6e987a799cd66b28f371b03fa34a9} 
+STATE\+\_\+\+VICTORY&Écran de victoire (Fin du jeu) \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_CONFIRM\_QUIT@{STATE\_CONFIRM\_QUIT}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_CONFIRM\_QUIT@{STATE\_CONFIRM\_QUIT}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873daac72d3ff2ae4980ede1bf1c37ad69f70}\label{model_8h_a28b2e38d97689acd8aa713262f6f873daac72d3ff2ae4980ede1bf1c37ad69f70} 
+STATE\+\_\+\+CONFIRM\+\_\+\+QUIT&Pop-\/up de confirmation pour quitter. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_SAVE\_INPUT@{STATE\_SAVE\_INPUT}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_SAVE\_INPUT@{STATE\_SAVE\_INPUT}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873da2024dc0aa1a5c0ae0f7576d52539dd7a}\label{model_8h_a28b2e38d97689acd8aa713262f6f873da2024dc0aa1a5c0ae0f7576d52539dd7a} 
+STATE\+\_\+\+SAVE\+\_\+\+INPUT&Écran de saisie du nom de sauvegarde. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_LOAD\_MENU@{STATE\_LOAD\_MENU}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_LOAD\_MENU@{STATE\_LOAD\_MENU}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873dab7d817345074afa03a68df82fc6df826}\label{model_8h_a28b2e38d97689acd8aa713262f6f873dab7d817345074afa03a68df82fc6df826} 
+STATE\+\_\+\+LOAD\+\_\+\+MENU&Menu de chargement d\textquotesingle{}une partie. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_OVERWRITE\_CONFIRM@{STATE\_OVERWRITE\_CONFIRM}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_OVERWRITE\_CONFIRM@{STATE\_OVERWRITE\_CONFIRM}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873da37136699d4dfdfd72af616b4fd3eaf44}\label{model_8h_a28b2e38d97689acd8aa713262f6f873da37136699d4dfdfd72af616b4fd3eaf44} 
+STATE\+\_\+\+OVERWRITE\+\_\+\+CONFIRM&Confirmation d\textquotesingle{}écrasement de sauvegarde. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_SAVE\_SELECT@{STATE\_SAVE\_SELECT}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_SAVE\_SELECT@{STATE\_SAVE\_SELECT}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873daaac162430f45a99e07f2d8e377981b1b}\label{model_8h_a28b2e38d97689acd8aa713262f6f873daaac162430f45a99e07f2d8e377981b1b} 
+STATE\+\_\+\+SAVE\+\_\+\+SELECT&Menu de sélection d\textquotesingle{}emplacement de sauvegarde. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STATE\_SAVE\_SUCCESS@{STATE\_SAVE\_SUCCESS}!model.h@{model.h}}\index{model.h@{model.h}!STATE\_SAVE\_SUCCESS@{STATE\_SAVE\_SUCCESS}}}\Hypertarget{model_8h_a28b2e38d97689acd8aa713262f6f873da7d39535076c8ccde1a069edbd550f1d3}\label{model_8h_a28b2e38d97689acd8aa713262f6f873da7d39535076c8ccde1a069edbd550f1d3} 
+STATE\+\_\+\+SAVE\+\_\+\+SUCCESS&Écran temporaire de succès après sauvegarde. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+\label{doc-func-members}
+\Hypertarget{model_8h_doc-func-members}
+\doxysubsection{Function Documentation}
+\Hypertarget{model_8h_a4660b19c738e8c7fdc631585d0bc858e}\index{model.h@{model.h}!model\_free@{model\_free}}
+\index{model\_free@{model\_free}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{model\_free()}{model\_free()}}
+{\footnotesize\ttfamily \label{model_8h_a4660b19c738e8c7fdc631585d0bc858e} 
+void model\+\_\+free (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}}]{model}{}\end{DoxyParamCaption})}
+
+
+
+Libère la mémoire allouée pour le modèle. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur vers le modèle à détruire. \\
+\hline
+\end{DoxyParams}
+\Hypertarget{model_8h_ab85ec1d4e65602284723f6a4a2fa978b}\index{model.h@{model.h}!model\_get\_player@{model\_get\_player}}
+\index{model\_get\_player@{model\_get\_player}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{model\_get\_player()}{model\_get\_player()}}
+{\footnotesize\ttfamily \label{model_8h_ab85ec1d4e65602284723f6a4a2fa978b} 
+const \mbox{\hyperlink{structEntity}{Entity}} \texorpdfstring{$\ast$}{*} model\+\_\+get\+\_\+player (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}}]{model}{}\end{DoxyParamCaption})}
+
+
+
+Récupère un pointeur en lecture seule vers le joueur. Utile pour la vue si elle a besoin d\textquotesingle{}infos spécifiques sans modifier. 
+
+
+\begin{DoxyItemize}
+\item 
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur vers le modèle. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Pointeur constant vers l\textquotesingle{}entité joueur. 
+\end{DoxyReturn}
+
+\end{DoxyItemize}\Hypertarget{model_8h_ae400e8f868c134818f339507b11184d4}\index{model.h@{model.h}!model\_handle\_input@{model\_handle\_input}}
+\index{model\_handle\_input@{model\_handle\_input}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{model\_handle\_input()}{model\_handle\_input()}}
+{\footnotesize\ttfamily \label{model_8h_ae400e8f868c134818f339507b11184d4} 
+void model\+\_\+handle\+\_\+input (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}}]{model}{, }\item[{\mbox{\hyperlink{controller_8h_abc5a0df439bf92177bc39309fe831280}{Game\+Command}}}]{cmd}{}\end{DoxyParamCaption})}
+
+
+
+Traite une commande utilisateur (Input). Modifie l\textquotesingle{}état du modèle en fonction de l\textquotesingle{}action demandée (Tir, Mouvement, Menu). 
+
+
+\begin{DoxyItemize}
+\item 
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur vers le modèle. \\
+\hline
+{\em cmd} & La commande reçue du contrôleur (via clavier/manette). \\
+\hline
+\end{DoxyParams}
+
+\end{DoxyItemize}\Hypertarget{model_8h_a7f6d8e6b6c393548b29cd05c672a5fe4}\index{model.h@{model.h}!model\_init@{model\_init}}
+\index{model\_init@{model\_init}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{model\_init()}{model\_init()}}
+{\footnotesize\ttfamily \label{model_8h_a7f6d8e6b6c393548b29cd05c672a5fe4} 
+\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*} model\+\_\+init (\begin{DoxyParamCaption}\item[{void}]{}{}\end{DoxyParamCaption})}
+
+
+
+Initialise le modèle de jeu. Alloue la mémoire et configure les valeurs par défaut. 
+
+\begin{DoxyReturn}{Returns}
+Un pointeur vers la structure \doxylink{structGameModel}{Game\+Model} nouvellement créée. 
+\end{DoxyReturn}
+\Hypertarget{model_8h_ab08aabb686c74da7bd503dfd03abee12}\index{model.h@{model.h}!model\_load\_named@{model\_load\_named}}
+\index{model\_load\_named@{model\_load\_named}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{model\_load\_named()}{model\_load\_named()}}
+{\footnotesize\ttfamily \label{model_8h_ab08aabb686c74da7bd503dfd03abee12} 
+bool model\+\_\+load\+\_\+named (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}}]{model}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{filename}{}\end{DoxyParamCaption})}
+
+
+
+Charge un état de jeu depuis un fichier. 
+
+
+\begin{DoxyItemize}
+\item 
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur vers le modèle à mettre à jour. \\
+\hline
+{\em filename} & Nom du fichier à charger. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+true si le chargement a réussi, false sinon. 
+\end{DoxyReturn}
+
+\end{DoxyItemize}\Hypertarget{model_8h_a1b710e808411bdeb72f1353b82ffcc9c}\index{model.h@{model.h}!model\_save\_named@{model\_save\_named}}
+\index{model\_save\_named@{model\_save\_named}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{model\_save\_named()}{model\_save\_named()}}
+{\footnotesize\ttfamily \label{model_8h_a1b710e808411bdeb72f1353b82ffcc9c} 
+void model\+\_\+save\+\_\+named (\begin{DoxyParamCaption}\item[{const \mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}}]{model}{, }\item[{const char \texorpdfstring{$\ast$}{*}}]{filename}{}\end{DoxyParamCaption})}
+
+
+
+Sauvegarde l\textquotesingle{}état actuel du jeu dans un fichier spécifique. 
+
+
+\begin{DoxyItemize}
+\item 
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur vers le modèle à sauvegarder. \\
+\hline
+{\em filename} & Nom du fichier (ex\+: "{}partie1.\+dat"{}). \\
+\hline
+\end{DoxyParams}
+
+\end{DoxyItemize}\Hypertarget{model_8h_af1d995c89f2c13363f6648b3884b42ea}\index{model.h@{model.h}!model\_scan\_saves@{model\_scan\_saves}}
+\index{model\_scan\_saves@{model\_scan\_saves}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{model\_scan\_saves()}{model\_scan\_saves()}}
+{\footnotesize\ttfamily \label{model_8h_af1d995c89f2c13363f6648b3884b42ea} 
+void model\+\_\+scan\+\_\+saves (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}}]{model}{}\end{DoxyParamCaption})}
+
+
+
+Scanne le répertoire des sauvegardes pour remplir la liste save\+\_\+files. Met à jour model-\/\texorpdfstring{$>$}{>}save\+\_\+files et model-\/\texorpdfstring{$>$}{>}save\+\_\+file\+\_\+count. 
+
+
+\begin{DoxyItemize}
+\item 
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur vers le modèle. \\
+\hline
+\end{DoxyParams}
+
+\end{DoxyItemize}\Hypertarget{model_8h_a92ee0410272ecbd81bb7ab7ed8d912fd}\index{model.h@{model.h}!model\_update@{model\_update}}
+\index{model\_update@{model\_update}!model.h@{model.h}}
+\doxysubsubsection{\texorpdfstring{model\_update()}{model\_update()}}
+{\footnotesize\ttfamily \label{model_8h_a92ee0410272ecbd81bb7ab7ed8d912fd} 
+void model\+\_\+update (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}}]{model}{, }\item[{double}]{dt}{}\end{DoxyParamCaption})}
+
+
+
+Met à jour la logique du jeu pour une frame. Gère les déplacements, collisions, timers et changements d\textquotesingle{}états. 
+
+
+\begin{DoxyItemize}
+\item 
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur vers le modèle. \\
+\hline
+{\em dt} & Delta Time \+: temps écoulé depuis la dernière frame (en secondes). \\
+\hline
+\end{DoxyParams}
+
+\end{DoxyItemize}

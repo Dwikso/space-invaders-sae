@@ -1,168 +1,273 @@
+/**
+ * @file model.h
+ * @brief Définition du modèle de données (Data Model) du jeu Space Invaders.
+ *
+ * Ce fichier contient toutes les structures de données représentant l'état du jeu,
+ * les constantes de gameplay, ainsi que les prototypes des fonctions de manipulation
+ * du modèle (MVC).
+ *
+ * @date 2024
+ */
+
 #ifndef MODEL_H
 #define MODEL_H
 
-#define MAX_SAVE_FILES 10
-#define MAX_FILENAME_LEN 32
 #include "common.h"
-#include "controller.h" // Pour traiter les commandes
-#define MAX_SHIELDS 4
-#define SHIELD_MAX_HEALTH 10 // 1 état Full + 9 états Damage
+#include "controller.h" // Pour l'enum GameCommand
 
-// --- Constantes UFO ---
-#define UFO_POINTS 60
-#define UFO_SPEED 10.0f // Très rapide !
-#define UFO_WIDTH 4     // Taille arbitraire, adapte selon ton image bmp
-#define UFO_HEIGHT 2
-#define MAX_LIVES_NORMAL 3 // Le nombre de vies "standard" avant le bonus
+// ============================================================================
+//                              CONSTANTES & MACROS
+// ============================================================================
 
-// --- Structures de données ---
+/** @name Système de Sauvegarde */
+///@{
+#define MAX_SAVE_FILES 10   ///< Nombre maximum de fichiers de sauvegarde détectés
+#define MAX_FILENAME_LEN 32 ///< Longueur maximale d'un nom de fichier
+///@}
 
+/** @name Configuration Gameplay */
+///@{
+#define MAX_SHIELDS 4        ///< Nombre de boucliers (bunkers)
+#define SHIELD_MAX_HEALTH 10 ///< Points de vie d'un bouclier (1 état intact + 9 états de dégâts)
+#define MAX_LIVES_NORMAL 3   ///< Nombre de vies de départ
+///@}
+
+/** @name Configuration UFO (OVNI) */
+///@{
+#define UFO_POINTS 60   ///< Points gagnés en détruisant l'OVNI
+#define UFO_SPEED 10.0f ///< Vitesse de déplacement horizontal de l'OVNI
+#define UFO_WIDTH 4     ///< Largeur logique de l'OVNI
+#define UFO_HEIGHT 2    ///< Hauteur logique de l'OVNI
+///@}
+
+// ============================================================================
+//                              ENUMÉRATIONS
+// ============================================================================
+
+/**
+ * @brief Types d'entités présentes dans le jeu.
+ * Utiliser pour distinguer le comportement lors du rendu et des collisions.
+ */
 typedef enum
 {
-    ENTITY_PLAYER,
-    ENTITY_BULLET_PLAYER,
-    ENTITY_BULLET_ENEMY,
-    ENTITY_ENEMY_TYPE_1, // En bas (10 pts) - "Octopus"
-    ENTITY_ENEMY_TYPE_2, // Milieu (20 pts) - "Crab"
-    ENTITY_ENEMY_TYPE_3  // En haut (40 pts) - "Squid"
+    ENTITY_PLAYER,        ///< Le vaisseau du joueur
+    ENTITY_BULLET_PLAYER, ///< Projectile tiré par le joueur
+    ENTITY_BULLET_ENEMY,  ///< Projectile tiré par un ennemi
+    ENTITY_ENEMY_TYPE_1,  ///< Ennemi rangée du bas (10 pts) - "Octopus"
+    ENTITY_ENEMY_TYPE_2,  ///< Ennemi rangée du milieu (20 pts) - "Crab"
+    ENTITY_ENEMY_TYPE_3   ///< Ennemi rangée du haut (40 pts) - "Squid"
 } EntityType;
 
-typedef struct
-{
-    float x, y;        // Position (float pour fluidité)
-    int width, height; // Hitbox
-    float dx, dy;      // Vitesse vectorielle
-    bool active;       // Si false, l'entité n'est pas dessinée/traitée
-    EntityType type;
-
-    // --- AJOUT IMPORTANT POUR LE TIR ---
-    float shoot_timer; // Temps restant avant le prochain tir (Cooldown)
-    // -----------------------------------
-    // --- NOUVEAU POUR ANIMATION DES BALLES ---
-    float anim_timer; // Temps écoulé depuis la dernière frame d'animation
-    int anim_frame;   // Numéro de l'image (0, 1, 2 ou 3)
-    // ----------------------------------------
-    bool exploding;      // Est-ce qu'il est touché ?
-    float explode_timer; // Combien de temps afficher l'explosion
-} Entity;
-
+/**
+ * @brief États possibles de la machine à états du jeu (FSM).
+ * Gère les transitions entre les différents écrans et modes.
+ */
 typedef enum
 {
-    STATE_MENU,
-    STATE_PLAYING,
-    STATE_PAUSED,
-    STATE_TUTORIAL,
-    STATE_GAME_OVER,
-    STATE_VICTORY,
-    STATE_CONFIRM_QUIT,
-    STATE_SAVE_INPUT,
-    STATE_LOAD_MENU,
-    STATE_OVERWRITE_CONFIRM,
-    STATE_SAVE_SELECT,
+    STATE_MENU,              ///< Menu principal
+    STATE_PLAYING,           ///< Jeu en cours
+    STATE_PAUSED,            ///< Jeu en pause (avec menu contextuel)
+    STATE_TUTORIAL,          ///< Écran d'explication des touches
+    STATE_GAME_OVER,         ///< Écran de fin de partie (Défaite)
+    STATE_VICTORY,           ///< Écran de victoire (Fin du jeu)
+    STATE_CONFIRM_QUIT,      ///< Pop-up de confirmation pour quitter
+    STATE_SAVE_INPUT,        ///< Écran de saisie du nom de sauvegarde
+    STATE_LOAD_MENU,         ///< Menu de chargement d'une partie
+    STATE_OVERWRITE_CONFIRM, ///< Confirmation d'écrasement de sauvegarde
+    STATE_SAVE_SELECT,       ///< Menu de sélection d'emplacement de sauvegarde
+    STATE_SAVE_SUCCESS       ///< Écran temporaire de succès après sauvegarde
 } GameStateEnum;
 
-// Structure spécifique pour l'OVNI
+// ============================================================================
+//                          STRUCTURES DE DONNÉES
+// ============================================================================
+
+/**
+ * @brief Représente une entité générique du jeu (Vaisseau, Ennemi, Projectile).
+ */
 typedef struct
 {
-    float x, y;
-    float width, height;
-    float dx;                 // Direction et vitesse horizontale
-    bool active;              // Est-il actuellement à l'écran ?
-    bool hasSpawnedThisLevel; // Pour s'assurer qu'il ne passe qu'une fois par niveau
-    bool exploding;
-    float explode_timer;
+    float x;         ///< Position horizontale
+    float y;         ///< Position verticale
+    int width;       ///< Largeur de la hitbox
+    int height;      ///< Hauteur de la hitbox
+    float dx;        ///< Vitesse horizontale
+    float dy;        ///< Vitesse verticale
+    bool active;     ///< Si false, l'entité est ignorée (morte/détruite)
+    EntityType type; ///< Le type de l'entité (Joueur, Ennemi, etc.)
+
+    float shoot_timer; ///< Temps restant avant le prochain tir (Cooldown)
+
+    // --- Animation ---
+    float anim_timer; ///< Temps écoulé depuis la dernière frame d'animation
+    int anim_frame;   ///< Index de l'image actuelle (sprite animation)
+
+    // --- État Explosion ---
+    bool exploding;      ///< Indique si l'entité est en train d'exploser
+    float explode_timer; ///< Durée restante de l'animation d'explosion
+} Entity;
+
+/**
+ * @brief Structure spécifique pour l'OVNI bonus (Mystery Ship).
+ */
+typedef struct
+{
+    float x, y;               ///< Position
+    float width, height;      ///< Dimensions
+    float dx;                 ///< Direction et vitesse de déplacement
+    bool active;              ///< Est-il actuellement présent à l'écran ?
+    bool hasSpawnedThisLevel; ///< Empêche l'OVNI d'apparaître plusieurs fois par niveau
+    bool exploding;           ///< En cours d'explosion
+    float explode_timer;      ///< Durée de l'explosion
 } Ufo;
 
+/**
+ * @brief Représente un bunker/bouclier destructible.
+ */
 typedef struct
 {
-    float x, y;
-    float width, height;
-    int health; // 10 = Full, 9 = Damage_1 ... 1 = Damage_9, 0 = Mort
-    bool active;
+    float x, y;          ///< Position
+    float width, height; ///< Dimensions
+    int health;          ///< État de santé : 10 (Intact) à 0 (Détruit)
+    bool active;         ///< Si false, le bouclier est entièrement détruit
 } Shield;
+
+/**
+ * @brief Système de drapeaux (Flags) pour le moteur audio.
+ * * Le Modèle lève ces drapeaux (true), la Vue les lit, joue le son,
+ * puis les remet à zéro (false).
+ */
 typedef struct
 {
-    // Drapeaux (Flags) : Si true, le son doit être joué, puis remis à false par la vue
-    bool play_shoot;
-    bool play_invader_killed;
-    bool play_player_explosion;
+    // --- SFX Ponctuels ---
+    bool play_shoot;            ///< Son de tir
+    bool play_invader_killed;   ///< Son destruction ennemi
+    bool play_player_explosion; ///< Son mort du joueur
+    bool play_select_sound;     ///< Bruitage "Bip" de validation dans les menus
+    bool play_game_over;        ///< Jingle de Game Over
+    bool play_level_up;         ///< Jingle de changement de niveau
 
-    // Pour le rythme de fond (Beat)
-    bool play_beat; // Doit-on jouer une note de fond ?
-    int beat_index; // 0, 1, 2 ou 3 (pour fastinvader1..4)
-
-    // État continu
-    bool ufo_loopING; // L'UFO est-il en train de faire du bruit ?
+    // --- Ambiances / Boucles ---
+    bool play_beat;   ///< Trigger pour le rythme alien
+    int beat_index;   ///< Index du son de rythme (0 à 3)
+    bool ufo_loopING; ///< État continu : L'UFO est-il actif ?
 } SoundState;
+
+/**
+ * @brief Structure principale du modèle (God Object).
+ * * Contient l'intégralité de l'état du jeu à un instant T.
+ */
 typedef struct
 {
-    GameStateEnum state;
+    GameStateEnum state;          ///< État courant de la machine à états
+    GameStateEnum previous_state; ///< État précédent (utile pour le retour de Pause/Confirm)
 
-    Entity player;
+    // --- Entités ---
+    Entity player;               ///< Le vaisseau du joueur
+    Entity enemies[MAX_ENEMIES]; ///< Tableau des ennemis (Invaders)
+    Entity bullets[MAX_BULLETS]; ///< Tableau des projectiles (Joueur + Ennemis)
+    Ufo ufo;                     ///< L'OVNI bonus
+    Shield shields[MAX_SHIELDS]; ///< Les boucliers de protection
 
-    // Tableaux statiques pour simplifier la gestion mémoire au début
-    Entity enemies[MAX_ENEMIES];
-    Entity bullets[MAX_BULLETS];
+    // --- Données de la partie ---
+    int score;            ///< Score actuel
+    int lives;            ///< Vies restantes
+    int level;            ///< Niveau actuel
+    int normal_max_lives; ///< Seuil pour gagner une vie bonus
 
-    int score;
-    int lives;
-    int level;
-    int menu_selection;
+    // --- Logique des Ennemis (Vague) ---
+    float enemy_speed_mult; ///< Multiplicateur de vitesse (augmente avec les niveaux)
+    int direction_enemies;  ///< 1 (droite) ou -1 (gauche)
+    int drop_direction;     ///< 1 (descend), -1 (remonte - rare)
+    int drop_step_count;    ///< Compteur pour l'animation de descente
 
-    // Logique interne pour les vagues d'ennemis
-    float enemy_speed_mult;
-    int direction_enemies; // 1 (droite) ou -1 (gauche)
-    int animation_frame;   // 0 ou 1
-    float animation_timer;
+    // --- Animation Globale ---
+    int animation_frame;   ///< Frame globale pour synchroniser les ennemis (0 ou 1)
+    float animation_timer; ///< Timer pour le rythme d'animation
 
-    // NOUVEAUX CHAMPS POUR LE MOUVEMENT
-    int drop_direction;  // 1 = descend, -1 = monte
-    int drop_step_count; // Compteur : de 0 à 4
+    // --- Timers de Jeu ---
+    float game_over_timer;    ///< Délai avant interaction sur l'écran Game Over
+    float hit_timer;          ///< Temps d'invulnérabilité/clignotement après un coup
+    float save_success_timer; ///< Temps d'affichage du message "Sauvegarde Réussie"
 
-    float game_over_timer; // Compteur de temps pour le Game Over
-    float hit_timer;
+    // --- Interface Utilisateur ---
+    int menu_selection;                  ///< Index de l'élément sélectionné dans le menu courant
+    char input_buffer[MAX_FILENAME_LEN]; ///< Buffer pour la saisie de texte (Nom de sauvegarde)
 
-    Shield shields[MAX_SHIELDS];
-    // NOUVEAU : L'OVNI
-    Ufo ufo;
+    // --- Système de Fichiers ---
+    char save_files[MAX_SAVE_FILES][256]; ///< Cache des noms de fichiers de sauvegarde trouvés
+    int save_file_count;                  ///< Nombre de fichiers trouvés
+    bool pending_quit;                    ///< Drapeau : Doit-on quitter après l'opération en cours ?
 
-    // NOUVEAU : On garde en mémoire le max normal pour savoir quand donner le bonus
-    int normal_max_lives;
-    GameStateEnum previous_state;
-
-    // NOUVEAU : Gestion Sauvegarde
-    char input_buffer[MAX_FILENAME_LEN]; // Ce que le joueur tape
-
-    // NOUVEAU : Liste des fichiers pour le menu charger
-    char save_files[MAX_SAVE_FILES][256]; // Liste des noms de fichiers
-    int save_file_count;                  // Combien on en a trouvé
-    bool pending_quit;                    // Est-ce qu'on doit quitter après la sauvegarde ?
-    SoundState sounds;
-
-    // --- AJOUT GESTION VOLUME ---
-    int volume;    // De 0 à 100
-    bool is_muted; // true = silence total
-    // ---------------------------
+    // --- Audio ---
+    SoundState sounds; ///< État des déclencheurs sonores
+    int volume;        ///< Volume global (0 à 100)
+    bool is_muted;     ///< Si true, le son est coupé
 } GameModel;
 
-// --- Fonctions Publiques (API du Modèle) ---
+// ============================================================================
+//                          FONCTIONS PUBLIQUES
+// ============================================================================
 
-// Initialisation et nettoyage
+/**
+ * @brief Initialise le modèle de jeu.
+ * Alloue la mémoire et configure les valeurs par défaut.
+ * @return Un pointeur vers la structure GameModel nouvellement créée.
+ */
 GameModel *model_init(void);
+
+/**
+ * @brief Libère la mémoire allouée pour le modèle.
+ * @param model Pointeur vers le modèle à détruire.
+ */
 void model_free(GameModel *model);
 
-// Mise à jour (appeler à chaque frame)
-// dt = delta time (temps écoulé depuis la dernière frame en secondes)
+/**
+ * @brief Met à jour la logique du jeu pour une frame.
+ * Gère les déplacements, collisions, timers et changements d'états.
+ * * @param model Pointeur vers le modèle.
+ * @param dt Delta Time : temps écoulé depuis la dernière frame (en secondes).
+ */
 void model_update(GameModel *model, double dt);
 
-// Interaction
+/**
+ * @brief Traite une commande utilisateur (Input).
+ * Modifie l'état du modèle en fonction de l'action demandée (Tir, Mouvement, Menu).
+ * * @param model Pointeur vers le modèle.
+ * @param cmd La commande reçue du contrôleur (via clavier/manette).
+ */
 void model_handle_input(GameModel *model, GameCommand cmd);
 
-// Getters pour l'affichage (lecture seule recommandée)
+/**
+ * @brief Récupère un pointeur en lecture seule vers le joueur.
+ * Utile pour la vue si elle a besoin d'infos spécifiques sans modifier.
+ * * @param model Pointeur vers le modèle.
+ * @return Pointeur constant vers l'entité joueur.
+ */
 const Entity *model_get_player(const GameModel *model);
-// AJOUTE CES 3 LIGNES :
+
+// --- Gestion des Sauvegardes ---
+
+/**
+ * @brief Scanne le répertoire des sauvegardes pour remplir la liste save_files.
+ * Met à jour model->save_files et model->save_file_count.
+ * * @param model Pointeur vers le modèle.
+ */
 void model_scan_saves(GameModel *model);
+
+/**
+ * @brief Sauvegarde l'état actuel du jeu dans un fichier spécifique.
+ * * @param model Pointeur vers le modèle à sauvegarder.
+ * @param filename Nom du fichier (ex: "partie1.dat").
+ */
 void model_save_named(const GameModel *model, const char *filename);
+
+/**
+ * @brief Charge un état de jeu depuis un fichier.
+ * * @param model Pointeur vers le modèle à mettre à jour.
+ * @param filename Nom du fichier à charger.
+ * @return true si le chargement a réussi, false sinon.
+ */
 bool model_load_named(GameModel *model, const char *filename);
 
 #endif // MODEL_H

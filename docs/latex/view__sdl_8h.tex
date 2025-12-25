@@ -1,0 +1,39 @@
+\doxysection{include/view\+\_\+sdl.h File Reference}
+\hypertarget{view__sdl_8h}{}\label{view__sdl_8h}\index{include/view\_sdl.h@{include/view\_sdl.h}}
+
+
+Implémentation de la Vue Graphique (SDL3).  
+
+
+{\ttfamily \#include "{}view\+\_\+interface.\+h"{}}\newline
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+const \mbox{\hyperlink{structViewInterface}{View\+Interface}} \mbox{\hyperlink{view__sdl_8h_add6f7a57727a5ac73a77ae0724a4156e}{view\+\_\+sdl}}
+\begin{DoxyCompactList}\small\item\em Instance concrète de l\textquotesingle{}interface View pour SDL. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Implémentation de la Vue Graphique (SDL3). 
+
+Ce module expose l\textquotesingle{}instance de l\textquotesingle{}interface utilisant la Simple Direct\+Media Layer (SDL). Il gère l\textquotesingle{}affichage des sprites, le son, et les fenêtres graphiques. Note \+: Les headers SDL ne sont pas inclus ici pour éviter de polluer le reste du projet.
+
+\begin{DoxyDate}{Date}
+2024 
+\end{DoxyDate}
+
+
+\label{doc-var-members}
+\Hypertarget{view__sdl_8h_doc-var-members}
+\doxysubsection{Variable Documentation}
+\Hypertarget{view__sdl_8h_add6f7a57727a5ac73a77ae0724a4156e}\index{view\_sdl.h@{view\_sdl.h}!view\_sdl@{view\_sdl}}
+\index{view\_sdl@{view\_sdl}!view\_sdl.h@{view\_sdl.h}}
+\doxysubsubsection{\texorpdfstring{view\_sdl}{view\_sdl}}
+{\footnotesize\ttfamily \label{view__sdl_8h_add6f7a57727a5ac73a77ae0724a4156e} 
+const \mbox{\hyperlink{structViewInterface}{View\+Interface}} view\+\_\+sdl\hspace{0.3cm}{\ttfamily [extern]}}
+
+
+
+Instance concrète de l\textquotesingle{}interface View pour SDL. 
+
+Cette variable globale est définie dans view\+\_\+sdl.\+c. Elle contient les pointeurs vers les fonctions spécifiques à SDL (sdl\+\_\+init, sdl\+\_\+render, etc.). 

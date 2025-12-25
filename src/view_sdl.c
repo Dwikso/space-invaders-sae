@@ -86,7 +86,11 @@ static struct
     MIX_Audio *snd_explosion;
     MIX_Audio *snd_ufo;
     MIX_Audio *snd_beat[4];
-
+    MIX_Audio *snd_game_over;
+    MIX_Audio *snd_level_up;
+    MIX_Audio *snd_select;  // Le "Bip"
+    MIX_Audio *snd_menu_bg; // La musique de fond
+    MIX_Track *track_menu;
     // Pour l'UFO qui boucle, on a besoin d'une "Piste" (Track)
     MIX_Track *track_ufo;
 
@@ -186,8 +190,7 @@ static void draw_entity(SDL_Texture *tex, const Entity *e, int offset_x, int off
 // 1. Initialisation
 static bool sdl_init(void)
 {
-    // 1. Initialisation SDL (Vidéo, Events ET Audio)
-    // J'ai ajouté SDL_INIT_AUDIO pour préparer le terrain
+    // 1. Initialisation SDL
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO))
     {
         fprintf(stderr, "Erreur SDL_Init: %s\n", SDL_GetError());
@@ -200,14 +203,11 @@ static bool sdl_init(void)
         return false;
     }
 
-    // --- AJOUT IMPORTANT : INITIALISATION DE LA LIBRAIRIE MIXER ---
-    // Sans ça, MIX_CreateMixerDevice échoue.
+    // Initialisation de la LIBRAIRIE Mixer
     if (!MIX_Init())
     {
         fprintf(stderr, "Attention : Erreur MIX_Init : %s\n", SDL_GetError());
-        // On continue, mais le son risque de ne pas marcher
     }
-    // -------------------------------------------------------------
 
     ctx.font = TTF_OpenFont(FONT_PATH, FONT_SIZE);
     ctx.font_title = TTF_OpenFont(FONT_PATH, 64);
@@ -225,18 +225,15 @@ static bool sdl_init(void)
     if (!ctx.renderer)
         return false;
 
-    SDL_SetRenderLogicalPresentation(ctx.renderer, WIN_WIDTH, WIN_HEIGHT,
-                                     SDL_LOGICAL_PRESENTATION_LETTERBOX);
+    SDL_SetRenderLogicalPresentation(ctx.renderer, WIN_WIDTH, WIN_HEIGHT, SDL_LOGICAL_PRESENTATION_LETTERBOX);
     SCALE_X = (float)WIN_WIDTH / GAME_WIDTH;
     SCALE_Y = (float)WIN_HEIGHT / GAME_HEIGHT;
 
     // --- Chargement des textures ---
     ctx.tex_enemy1[0] = load_texture(IMG_ENEMY1_A);
     ctx.tex_enemy1[1] = load_texture(IMG_ENEMY1_B);
-
     ctx.tex_enemy2[0] = load_texture(IMG_ENEMY2_A);
     ctx.tex_enemy2[1] = load_texture(IMG_ENEMY2_B);
-
     ctx.tex_enemy3[0] = load_texture(IMG_ENEMY3_A);
     ctx.tex_enemy3[1] = load_texture(IMG_ENEMY3_B);
 
@@ -244,14 +241,12 @@ static bool sdl_init(void)
     ctx.tex_bullet = load_texture(IMG_BULLET);
     ctx.tex_bg_menu = load_texture(IMG_BG_MENU);
     ctx.tex_bg_menu_1 = load_texture(IMG_BG_MENU_1);
-
     ctx.tex_bg_game = load_texture(IMG_BG_GAME);
 
     ctx.tex_expl_a = load_texture(IMG_EXPLOSION_A);
     ctx.tex_expl_b = load_texture(IMG_EXPLOSION_B);
     ctx.tex_ufo = load_texture(IMG_UFO);
 
-    // Nouveaux assets
     ctx.tex_missile[0] = IMG_LoadTexture(ctx.renderer, "assets/missiles/missile_1.bmp");
     ctx.tex_missile[1] = IMG_LoadTexture(ctx.renderer, "assets/missiles/missile_2.bmp");
     ctx.tex_missile[2] = IMG_LoadTexture(ctx.renderer, "assets/missiles/missile_3.bmp");
@@ -267,19 +262,26 @@ static bool sdl_init(void)
 
     // --- AUDIO CONFIGURATION ---
 
-    // On crée un mixer relié au périphérique par défaut
+    // 1. Création du Mixer
     SDL_AudioSpec spec = {SDL_AUDIO_S16, 2, 44100};
-
-    // Maintenant que MIX_Init est fait plus haut, ceci devrait marcher :
     ctx.mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
 
     if (!ctx.mixer)
     {
         printf("Erreur création Mixer: %s\n", SDL_GetError());
+        // On initialise à NULL pour éviter les plantages plus tard
+        ctx.snd_game_over = NULL;
+        ctx.snd_level_up = NULL;
     }
     else
     {
-        // Chargement des sons seulement si le mixer existe
+        // 2. Chargement des sons (MAINTENANT QUE LE MIXER EXISTE)
+
+        // --- CORRECTEMENT PLACÉ ICI ---
+        ctx.snd_game_over = MIX_LoadAudio(ctx.mixer, "assets/audio/gameOverSound.wav", true);
+        ctx.snd_level_up = MIX_LoadAudio(ctx.mixer, "assets/audio/levelUpSound.wav", true);
+        // ------------------------------
+
         ctx.snd_shoot = MIX_LoadAudio(ctx.mixer, "assets/audio/shootSound.wav", true);
         ctx.snd_killed = MIX_LoadAudio(ctx.mixer, "assets/audio/invaderKilledSound.wav", true);
         ctx.snd_explosion = MIX_LoadAudio(ctx.mixer, "assets/audio/explosionSound.wav", true);
@@ -289,7 +291,23 @@ static bool sdl_init(void)
         ctx.snd_beat[1] = MIX_LoadAudio(ctx.mixer, "assets/audio/fastinvader2.wav", true);
         ctx.snd_beat[2] = MIX_LoadAudio(ctx.mixer, "assets/audio/fastinvader3.wav", true);
         ctx.snd_beat[3] = MIX_LoadAudio(ctx.mixer, "assets/audio/fastinvader4.wav", true);
+        // --- AJOUTER ICI ---
+        ctx.snd_select = MIX_LoadAudio(ctx.mixer, "assets/audio/selectSound.wav", true);
+        ctx.snd_menu_bg = MIX_LoadAudio(ctx.mixer, "assets/audio/menuSound.wav", true);
 
+        // Création de la piste pour la musique de menu
+        if (ctx.snd_menu_bg)
+        {
+            ctx.track_menu = MIX_CreateTrack(ctx.mixer);
+            if (ctx.track_menu)
+            {
+                MIX_SetTrackAudio(ctx.track_menu, ctx.snd_menu_bg);
+            }
+        }
+        else
+        {
+            ctx.track_menu = NULL;
+        }
         // Track UFO
         if (ctx.snd_ufo)
         {
@@ -306,6 +324,11 @@ static bool sdl_init(void)
     }
 
     // Vérifications de chargement (Logs)
+    if (!ctx.snd_game_over)
+        printf("Attention: gameOverSound.wav non trouvé\n");
+    if (!ctx.snd_level_up)
+        printf("Attention: levelUpSound.wav non trouvé\n");
+
     if (!ctx.snd_shoot || !ctx.snd_beat[0])
         printf("Attention: Certains sons manquent dans assets/audio/\n");
     if (!ctx.tex_expl_enemy || !ctx.tex_expl_ufo)
@@ -337,7 +360,6 @@ static bool sdl_init(void)
 
     return true;
 }
-
 // 2. Fermeture
 static void sdl_close(void)
 {
@@ -357,7 +379,12 @@ static void sdl_close(void)
     for (int i = 0; i < 4; i++)
         if (ctx.snd_beat[i])
             MIX_DestroyAudio(ctx.snd_beat[i]);
-
+    if (ctx.track_menu)
+        MIX_DestroyTrack(ctx.track_menu); // Détruire la piste
+    if (ctx.snd_select)
+        MIX_DestroyAudio(ctx.snd_select);
+    if (ctx.snd_menu_bg)
+        MIX_DestroyAudio(ctx.snd_menu_bg);
     // Nettoyage Mixer
     if (ctx.mixer)
         MIX_DestroyMixer(ctx.mixer);
@@ -440,14 +467,22 @@ static void draw_game_world(const GameModel *model)
     int shake_x = 0;
     int shake_y = 0;
 
-    // Si le joueur est en train d'exploser (hit_timer > 0)
-    if (model->hit_timer > 0)
+    // ON NE CALCULE LE TREMBLEMENT QUE SI LE JEU TOURNE VRAIMENT
+    if (model->state == STATE_PLAYING)
     {
-        // Génère un nombre aléatoire entre -5 et +5 pixels
-        shake_x = (rand() % 10) - 5;
-        shake_y = (rand() % 10) - 5;
+        if (model->hit_timer > 0)
+        {
+            // On est touché ET on joue : On génère du bruit
+            shake_x = (rand() % 11) - 5;
+            shake_y = (rand() % 11) - 5;
+        }
+        else
+        {
+            // Tout va bien : Pas de tremblement
+            shake_x = 0;
+            shake_y = 0;
+        }
     }
-
     // --- A. FOND (Avec Shake) ---
     if (ctx.tex_bg_game)
     {
@@ -656,71 +691,120 @@ static void sdl_render(const GameModel *model)
 
     if (ctx.mixer)
     {
-        // --- 1. APPLICATION DU VOLUME GLOBAL (MASTER GAIN) ---
-        float gain = 0.0f;
-        if (!model->is_muted)
-        {
-            // Conversion 0-100 vers 0.0-1.0
-            gain = (float)model->volume / 100.0f;
-        }
-        MIX_SetMasterGain(ctx.mixer, gain);
-        // -----------------------------------------------------
+        // ---------------------------------------------------------
+        // 1. GESTION PAUSE GLOBALE (PRIORITÉ ABSOLUE)
+        // ---------------------------------------------------------
+        bool game_frozen = (model->state == STATE_PAUSED ||
+                            model->state == STATE_CONFIRM_QUIT ||
+                            model->state == STATE_SAVE_SELECT ||
+                            model->state == STATE_SAVE_INPUT);
 
-        // 2. Sons ponctuels -> MIX_PlayAudio (Fire and Forget)
-        if (model->sounds.play_shoot)
+        if (game_frozen)
         {
-            if (ctx.snd_shoot)
-                MIX_PlayAudio(ctx.mixer, ctx.snd_shoot);
-            mutable_model->sounds.play_shoot = false;
+            MIX_PauseAllTracks(ctx.mixer); // Coupe TOUT (y compris la musique menu si elle jouait)
         }
-
-        if (model->sounds.play_invader_killed)
+        else if (model->state == STATE_PLAYING || model->state == STATE_SAVE_SUCCESS)
         {
-            if (ctx.snd_killed)
-                MIX_PlayAudio(ctx.mixer, ctx.snd_killed);
-            mutable_model->sounds.play_invader_killed = false;
+            MIX_ResumeAllTracks(ctx.mixer); // Réactive le moteur sonore
         }
 
-        if (model->sounds.play_player_explosion)
+        // ---------------------------------------------------------
+        // 2. MUSIQUE DE MENU (Seulement si pas en jeu et pas gelé)
+        // ---------------------------------------------------------
+        if (ctx.track_menu)
         {
-            if (ctx.snd_explosion)
-                MIX_PlayAudio(ctx.mixer, ctx.snd_explosion);
-            mutable_model->sounds.play_player_explosion = false;
-        }
+            // États où la musique doit tourner
+            bool need_menu_music = (model->state == STATE_MENU ||
+                                    model->state == STATE_TUTORIAL ||
+                                    model->state == STATE_LOAD_MENU ||
+                                    model->state == STATE_GAME_OVER);
 
-        // 3. Rythme
-        if (model->sounds.play_beat)
-        {
-            int idx = model->sounds.beat_index;
-            if (idx >= 0 && idx < 4 && ctx.snd_beat[idx])
+            if (need_menu_music && !game_frozen)
             {
-                MIX_PlayAudio(ctx.mixer, ctx.snd_beat[idx]);
-            }
-            mutable_model->sounds.play_beat = false;
-        }
-
-        // 4. UFO -> Gestion via Track (Piste)
-        if (ctx.track_ufo)
-        {
-            if (model->sounds.ufo_loopING)
-            {
-                // Si on doit jouer et que ce n'est pas déjà en lecture
-                if (!MIX_TrackPlaying(ctx.track_ufo))
-                {
-                    MIX_PlayTrack(ctx.track_ufo, 0);
-                }
+                if (!MIX_TrackPlaying(ctx.track_menu))
+                    MIX_PlayTrack(ctx.track_menu, 0);
+                if (MIX_TrackPaused(ctx.track_menu))
+                    MIX_ResumeTrack(ctx.track_menu);
             }
             else
             {
-                // Si on doit arrêter
-                if (MIX_TrackPlaying(ctx.track_ufo))
+                // Si on joue ou qu'on est en pause "technique", on coupe la musique menu
+                if (MIX_TrackPlaying(ctx.track_menu))
+                    MIX_PauseTrack(ctx.track_menu);
+            }
+        }
+
+        // ---------------------------------------------------------
+        // 3. VOLUME
+        // ---------------------------------------------------------
+        float gain = model->is_muted ? 0.0f : ((float)model->volume / 100.0f);
+        MIX_SetMasterGain(ctx.mixer, gain);
+
+        // ---------------------------------------------------------
+        // 4. BRUITAGES (ONE SHOTS) - On les force même si le mixer est chargé
+        // ---------------------------------------------------------
+
+        // SON DE VALIDATION (MENU)
+        if (model->sounds.play_select_sound)
+        {
+            if (ctx.snd_select)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_select);
+            mutable_model->sounds.play_select_sound = false;
+        }
+
+        // GAME OVER / LEVEL UP
+        if (model->sounds.play_game_over)
+        {
+            if (ctx.snd_game_over)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_game_over);
+            mutable_model->sounds.play_game_over = false;
+        }
+        if (model->sounds.play_level_up)
+        {
+            if (ctx.snd_level_up)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_level_up);
+            mutable_model->sounds.play_level_up = false;
+        }
+
+        // JEU
+        if (!game_frozen && model->state == STATE_PLAYING)
+        {
+            if (model->sounds.play_shoot && ctx.snd_shoot)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_shoot);
+
+            if (model->sounds.play_invader_killed && ctx.snd_killed)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_killed);
+
+            if (model->sounds.play_player_explosion && ctx.snd_explosion)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_explosion);
+
+            if (model->sounds.play_beat && ctx.snd_beat[model->sounds.beat_index])
+                MIX_PlayAudio(ctx.mixer, ctx.snd_beat[model->sounds.beat_index]);
+
+            // Reset flags
+            mutable_model->sounds.play_shoot = false;
+            mutable_model->sounds.play_invader_killed = false;
+            mutable_model->sounds.play_player_explosion = false;
+            mutable_model->sounds.play_beat = false;
+
+            // UFO Loop
+            if (ctx.track_ufo)
+            {
+                if (model->sounds.ufo_loopING)
                 {
-                    MIX_PauseTrack(ctx.track_ufo);
+                    if (!MIX_TrackPlaying(ctx.track_ufo))
+                        MIX_PlayTrack(ctx.track_ufo, 0);
+                    if (MIX_TrackPaused(ctx.track_ufo))
+                        MIX_ResumeTrack(ctx.track_ufo);
+                }
+                else
+                {
+                    if (MIX_TrackPlaying(ctx.track_ufo))
+                        MIX_PauseTrack(ctx.track_ufo);
                 }
             }
         }
     }
-
     // --- JEU (STATE_PLAYING) ---
     if (model->state == STATE_PLAYING)
     {
@@ -771,12 +855,13 @@ static void sdl_render(const GameModel *model)
     // src/view_sdl.c -> sdl_render
 
     // --- MENU PAUSE ---
+    // src/view_sdl.c -> sdl_render
+
     if (model->state == STATE_PAUSED)
     {
-        // On dessine le jeu en fond
         draw_game_world(model);
 
-        // Overlay sombre
+        // Fond sombre
         SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
         SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 180);
         SDL_RenderFillRect(ctx.renderer, NULL);
@@ -785,41 +870,36 @@ static void sdl_render(const GameModel *model)
         SDL_Color white = {255, 255, 255, 255};
         draw_text_centered("PAUSE", WIN_HEIGHT / 4, white, ctx.font_title);
 
-        // LES 4 OPTIONS (Correspondent à model.c)
+        // --- C'EST ICI QU'IL FAUT LES 4 OPTIONS ---
         const char *opts[] = {
             "REPRENDRE",
             "VOLUME",
             "SAUVEGARDER ET QUITTER",
-            "RETOURNER AU MENU PRINCIPAL"};
+            "QUITTER SANS SAUVEGARDER"};
+        // ------------------------------------------
 
         int y_start = WIN_HEIGHT / 2 - 50;
 
-        for (int i = 0; i < 4; i++) // Boucle sur 4 options
+        for (int i = 0; i < 4; i++) // Boucle sur 4
         {
             SDL_Color c = (i == model->menu_selection) ? (SDL_Color){255, 255, 0, 255} : (SDL_Color){150, 150, 150, 255};
 
-            if (i == 1) // Ligne Volume (Index 1)
+            if (i == 1) // VOLUME
             {
                 char vol_str[64];
                 if (model->is_muted)
-                {
                     snprintf(vol_str, sizeof(vol_str), "SON: OFF");
-                }
                 else
-                {
                     snprintf(vol_str, sizeof(vol_str), "SON: < %d%% >", model->volume);
-                }
                 draw_text_centered(vol_str, y_start + i * 60, c, ctx.font);
             }
-            else
+            else // AUTRES
             {
-                // Ajout des chevrons > < pour montrer la sélection
                 char buf[128];
                 if (i == model->menu_selection)
                     snprintf(buf, sizeof(buf), "> %s <", opts[i]);
                 else
                     snprintf(buf, sizeof(buf), "%s", opts[i]);
-
                 draw_text_centered(buf, y_start + i * 60, c, ctx.font);
             }
         }
@@ -1016,35 +1096,81 @@ static void sdl_render(const GameModel *model)
     }
 
     // --- POP-UP CONFIRMATION ---
+    // src/view_sdl.c -> sdl_render
+
     if (model->state == STATE_CONFIRM_QUIT)
     {
-        draw_game_world(model);
+        // 1. CHOIX DU FOND (BACKGROUND)
 
-        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 220);
-        SDL_RenderFillRect(ctx.renderer, NULL);
-        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+        // Si on vient du JEU ou de la PAUSE -> On affiche le jeu en fond
+        if (model->previous_state == STATE_PLAYING || model->previous_state == STATE_PAUSED)
+        {
+            draw_game_world(model);
 
+            // Voile noir sombre
+            SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 230);
+            SDL_RenderFillRect(ctx.renderer, NULL);
+            SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+        }
+        // Sinon (Game Over, ou autre) -> On affiche le fond style Tutoriel
+        else
+        {
+            SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+            SDL_RenderClear(ctx.renderer); // Nettoie l'écran
+
+            // Affiche l'image de fond (Menu 1 ou Menu standard)
+            if (ctx.tex_bg_menu_1)
+                SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu_1, NULL, NULL);
+            else if (ctx.tex_bg_menu)
+                SDL_RenderTexture(ctx.renderer, ctx.tex_bg_menu, NULL, NULL);
+
+            // Voile noir plus léger (comme le tuto)
+            SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
+            SDL_RenderFillRect(ctx.renderer, NULL);
+            SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+        }
+
+        // 2. TEXTES & OPTIONS (Reste identique)
         SDL_Color red = {255, 50, 50, 255};
         SDL_Color white = {255, 255, 255, 255};
+        SDL_Color gray = {180, 180, 180, 255};
 
-        draw_text_centered("ATTENTION", (GAME_HEIGHT / 2) + 10, red, ctx.font_title);
-        draw_text_centered("Quitter sans sauvegarder ?", (GAME_HEIGHT / 2) + 90, white, ctx.font);
+        draw_text_centered("ATTENTION !", (WIN_HEIGHT / 3), red, ctx.font_title);
 
-        const char *opts[] = {"OUI", "NON (REPRENDRE)", "SAUVEGARDER ET QUITTER"};
+        // Petit détail : on change le message si on est pas en jeu
+        if (model->previous_state == STATE_PLAYING || model->previous_state == STATE_PAUSED)
+        {
+            draw_text_centered("Progression non sauvegardee !", (WIN_HEIGHT / 3) + 60, white, ctx.font);
+        }
+        else
+        {
+            draw_text_centered("Voulez-vous quitter le jeu ?", (WIN_HEIGHT / 3) + 60, white, ctx.font);
+        }
+
+        draw_text_centered("Confirmer ?", (WIN_HEIGHT / 3) + 90, gray, ctx.font);
+
+        // LES 3 OPTIONS
+        const char *opts[] = {
+            "OUI, QUITTER",
+            "NON (RETOUR)",
+            "SAUVEGARDER ET QUITTER"};
+
+        int y_start = (WIN_HEIGHT / 2) + 50;
 
         for (int i = 0; i < 3; i++)
         {
-            SDL_Color c = (i == model->menu_selection) ? (SDL_Color){255, 215, 0, 255} : (SDL_Color){150, 150, 150, 255};
-            char buf[512];
+            SDL_Color c = (i == model->menu_selection) ? (SDL_Color){255, 215, 0, 255} : (SDL_Color){100, 100, 100, 255};
+
+            char buf[64];
             if (i == model->menu_selection)
                 snprintf(buf, sizeof(buf), "> %s <", opts[i]);
             else
                 snprintf(buf, sizeof(buf), "%s", opts[i]);
 
-            int y_pos = (GAME_HEIGHT / 2) + 150 + (i * 60);
-            draw_text_centered(buf, y_pos, c, ctx.font);
+            draw_text_centered(buf, y_start + (i * 60), c, ctx.font);
         }
+
         SDL_RenderPresent(ctx.renderer);
         return;
     }
@@ -1222,6 +1348,69 @@ static void sdl_render(const GameModel *model)
         }
 
         SDL_RenderPresent(ctx.renderer);
+    }
+    // --- ECRAN SUCCES & FERMETURE ---
+    if (model->state == STATE_SAVE_SUCCESS)
+    {
+        // 1. Fond noir ou flou
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 255); // Fond noir complet pour la fin
+        SDL_RenderClear(ctx.renderer);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        SDL_Color green = {50, 255, 50, 255};
+        SDL_Color white = {255, 255, 255, 255};
+
+        // 2. Messages
+        draw_text_centered("SAUVEGARDE REUSSIE !", (WIN_HEIGHT / 2) - 40, green, ctx.font_title);
+        draw_text_centered("Le jeu va se fermer...", (WIN_HEIGHT / 2) + 40, white, ctx.font);
+
+        SDL_RenderPresent(ctx.renderer);
+        return;
+    }
+    // src/view_sdl.c -> sdl_render
+
+    // --- POP-UP CONFIRMATION (QUITTER SANS SAUVER) ---
+    if (model->state == STATE_CONFIRM_QUIT)
+    {
+        // 1. On garde le jeu en fond pour le contexte
+        draw_game_world(model);
+
+        // 2. Voile noir assez opaque (pour bien séparer)
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 230); // Très sombre
+        SDL_RenderFillRect(ctx.renderer, NULL);
+        SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_NONE);
+
+        // 3. Textes d'avertissement
+        SDL_Color red = {255, 50, 50, 255};
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Color gray = {180, 180, 180, 255};
+
+        draw_text_centered("ATTENTION !", (WIN_HEIGHT / 3), red, ctx.font_title);
+        draw_text_centered("Toute progression non sauvegardee sera perdue.", (WIN_HEIGHT / 3) + 60, white, ctx.font);
+        draw_text_centered("Voulez-vous vraiment quitter ?", (WIN_HEIGHT / 3) + 90, gray, ctx.font);
+
+        // 4. Les Options (OUI / NON)
+        const char *opts[] = {"OUI, QUITTER", "NON, RETOUR"};
+        int y_start = (WIN_HEIGHT / 2) + 50;
+
+        for (int i = 0; i < 2; i++)
+        {
+            // Couleur : Sélectionné = Jaune, Sinon = Gris
+            SDL_Color c = (i == model->menu_selection) ? (SDL_Color){255, 215, 0, 255} : (SDL_Color){100, 100, 100, 255};
+
+            char buf[64];
+            if (i == model->menu_selection)
+                snprintf(buf, sizeof(buf), "> %s <", opts[i]);
+            else
+                snprintf(buf, sizeof(buf), "%s", opts[i]);
+
+            draw_text_centered(buf, y_start + (i * 60), c, ctx.font);
+        }
+
+        SDL_RenderPresent(ctx.renderer);
+        return;
     }
 }
 // 4. Entrées

@@ -349,6 +349,8 @@ static void update_bullets(GameModel *model, double dt)
 }
 // src/model.c
 
+// src/model.c
+
 void model_handle_input(GameModel *model, GameCommand cmd)
 {
     // =================================================
@@ -356,11 +358,10 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     // =================================================
     if (model->state == STATE_MENU)
     {
-        if (cmd == CMD_PAUSE)
+        if (cmd == CMD_PAUSE || cmd == CMD_EXIT)
             exit(0);
 
-        // 1. NAVIGATION VERTICALE (Changer d'option)
-        // On a maintenant 5 options (0 à 4) : Jouer, Tuto, Charger, Volume, Quitter
+        // Navigation
         if (cmd == CMD_UP)
         {
             model->menu_selection--;
@@ -374,15 +375,15 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 model->menu_selection = 0;
         }
 
-        // 2. LOGIQUE SPECIFIQUE SELON L'OPTION CHOISIE
-        if (model->menu_selection == 3) // --- OPTION VOLUME (Index 3) ---
+        // Gestion Volume (Option 3)
+        if (model->menu_selection == 3)
         {
             if (cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
             {
                 model->volume -= 10;
                 if (model->volume < 0)
                     model->volume = 0;
-                model->is_muted = false; // Si on touche, on démute
+                model->is_muted = false;
             }
             else if (cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
             {
@@ -393,14 +394,16 @@ void model_handle_input(GameModel *model, GameCommand cmd)
             }
             else if (cmd == CMD_SHOOT || cmd == CMD_RETURN)
             {
-                // Sur la ligne volume, Entrée active/désactive le MUTE
                 model->is_muted = !model->is_muted;
             }
         }
-        else // --- AUTRES OPTIONS (Validation classique) ---
+        // Validation autres options
+        else
         {
             if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
             {
+                model->sounds.play_select_sound = true; // SON OK
+
                 if (model->menu_selection == 0)
                 { // JOUER
                     init_enemies(model);
@@ -427,7 +430,6 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                         printf("Aucune sauvegarde trouvée !\n");
                     }
                 }
-                // Cas 3 (Volume) géré au dessus
                 else if (model->menu_selection == 4)
                 { // QUITTER
                     exit(0);
@@ -465,6 +467,7 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         {
             if (model->save_file_count > 0)
             {
+                model->sounds.play_select_sound = true; // SON OK
                 char *file_to_load = model->save_files[model->menu_selection];
                 if (model_load_named(model, file_to_load))
                 {
@@ -476,29 +479,31 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     }
 
     // =================================================
-    // NOUVEAU : LOGIQUE DU TUTORIEL
+    // 3. TUTORIEL
     // =================================================
     if (model->state == STATE_TUTORIAL)
     {
         // On appuie sur n'importe quoi pour revenir au menu
         if (cmd == CMD_PAUSE || cmd == CMD_EXIT || cmd == CMD_SHOOT || cmd == CMD_RETURN)
         {
+            model->sounds.play_select_sound = true; // SON AJOUTÉ ICI
             model->state = STATE_MENU;
-            model->menu_selection = 1; // On remet le curseur sur "Tutoriel"
+            model->menu_selection = 1;
         }
         return;
     }
+
     // =================================================
-    // 3. GAME OVER
+    // 4. GAME OVER
     // =================================================
     if (model->state == STATE_GAME_OVER)
     {
         if (model->game_over_timer < 1.0f)
             return;
 
-        if (cmd == CMD_EXIT)
+        if (cmd == CMD_EXIT) // Touche raccourci
         {
-            model->previous_state = model->state;
+            model->previous_state = STATE_GAME_OVER; // <--- AJOUT IMPORTANT
             model->state = STATE_CONFIRM_QUIT;
             model->menu_selection = 1;
             return;
@@ -518,10 +523,12 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         }
         else if (cmd == CMD_SHOOT || cmd == CMD_RETURN)
         {
+            model->sounds.play_select_sound = true; // SON OK
+
             if (model->menu_selection == 0)
             { // SAUVEGARDER
                 model_scan_saves(model);
-                model->state = STATE_SAVE_SELECT; // <--- Vers la liste !
+                model->state = STATE_SAVE_SELECT;
                 model->menu_selection = 0;
             }
             else if (model->menu_selection == 1)
@@ -529,8 +536,8 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 reset_game(model);
             }
             else
-            { // QUITTER
-                model->previous_state = model->state;
+            {                                            // Option QUITTER du menu
+                model->previous_state = STATE_GAME_OVER; // <--- AJOUT IMPORTANT
                 model->state = STATE_CONFIRM_QUIT;
                 model->menu_selection = 1;
             }
@@ -539,21 +546,17 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     }
 
     // =================================================
-    // 4. MENU PAUSE
+    // 5. MENU PAUSE
     // =================================================
-    // src/model.c -> model_handle_input
-
     if (model->state == STATE_PAUSED)
     {
-        // Touche ESC ou P pour reprendre direct
         if (cmd == CMD_PAUSE)
         {
             model->state = STATE_PLAYING;
             return;
         }
 
-        // 1. NAVIGATION VERTICALE (0 à 3)
-        // Options : 0=Reprendre, 1=Volume, 2=Sauvegarder, 3=Quitter
+        // Navigation
         if (cmd == CMD_UP)
         {
             model->menu_selection--;
@@ -567,8 +570,7 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 model->menu_selection = 0;
         }
 
-        // 2. GESTION VOLUME (Index 1)
-        // On le gère ici pour les flèches GAUCHE/DROITE
+        // Option Volume
         if (model->menu_selection == 1)
         {
             if (cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
@@ -590,40 +592,37 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 model->is_muted = !model->is_muted;
             }
         }
-        else
+        // Validation Autres Options
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
         {
-            // 3. VALIDATION DES AUTRES OPTIONS
-            if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+            // Son OK sauf sur Volume (géré plus haut)
+            if (model->menu_selection != 1)
             {
-                if (model->menu_selection == 0)
-                {
-                    // REPRENDRE
-                    model->state = STATE_PLAYING;
-                }
-                // Cas 1 (Volume) géré au dessus
-                else if (model->menu_selection == 2)
-                {
-                    // SAUVEGARDER ET QUITTER
-                    // On lance le scan des sauvegardes et on va vers l'écran de choix
-                    model_scan_saves(model);
-                    model->state = STATE_SAVE_SELECT;
-                    model->menu_selection = 0;
-                }
-                else if (model->menu_selection == 3)
-                {
-                    // QUITTER SANS SAUVEGARDER (Retour Menu Principal)
-                    // On peut ajouter une confirmation ici si tu veux,
-                    // mais pour l'instant ça retourne au menu.
-                    model->state = STATE_MENU;
-                    model->menu_selection = 0;
-                }
+                model->sounds.play_select_sound = true; // SON OK
+            }
+
+            if (model->menu_selection == 0)
+            { // REPRENDRE
+                model->state = STATE_PLAYING;
+            }
+            else if (model->menu_selection == 2)
+            { // SAUVEGARDER ET QUITTER
+                model_scan_saves(model);
+                model->state = STATE_SAVE_SELECT;
+                model->menu_selection = 0;
+            }
+            else if (model->menu_selection == 3)
+            {                                         // QUITTER SANS SAUVER
+                model->previous_state = STATE_PAUSED; // <--- AJOUT IMPORTANT
+                model->state = STATE_CONFIRM_QUIT;
+                model->menu_selection = 1;
             }
         }
         return;
     }
 
     // =================================================
-    // 5. NOUVEAU : SÉLECTION DU SLOT DE SAUVEGARDE
+    // 6. SÉLECTION DU SLOT DE SAUVEGARDE
     // =================================================
     if (model->state == STATE_SAVE_SELECT)
     {
@@ -634,7 +633,6 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         }
 
         int total_options = model->save_file_count + 1;
-
         if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
         {
             model->menu_selection--;
@@ -647,22 +645,21 @@ void model_handle_input(GameModel *model, GameCommand cmd)
             if (model->menu_selection >= total_options)
                 model->menu_selection = 0;
         }
-
         else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
         {
+            model->sounds.play_select_sound = true; // SON OK
+
             if (model->menu_selection == 0)
-            {
-                // CREER NOUVELLE
+            { // CREER NOUVELLE
                 model->state = STATE_SAVE_INPUT;
                 model->input_buffer[0] = '\0';
             }
             else
-            {
-                // ECRASER EXISTANTE
+            { // ECRASER EXISTANTE
                 int file_index = model->menu_selection - 1;
                 char *selected_file = model->save_files[file_index];
-
                 size_t len = strlen(selected_file);
+
                 if (len > 4)
                     strncpy(model->input_buffer, selected_file, len - 4);
                 else
@@ -677,7 +674,7 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     }
 
     // =================================================
-    // 6. SAISIE NOM SAUVEGARDE
+    // 7. SAISIE NOM SAUVEGARDE
     // =================================================
     if (model->state == STATE_SAVE_INPUT)
     {
@@ -685,11 +682,14 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         {
             model->state = STATE_PAUSED;
             model->pending_quit = false;
+            return;
         }
-        else if (cmd == CMD_RETURN)
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
         {
             if (strlen(model->input_buffer) > 0)
             {
+                model->sounds.play_select_sound = true; // SON OK
+
                 char filename[64];
                 snprintf(filename, sizeof(filename), "%s.dat", model->input_buffer);
 
@@ -700,29 +700,33 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 }
                 else
                 {
-                    model_save_named(model, filename);
-                    if (model->pending_quit)
-                        exit(0);
-                    else
-                        model->state = STATE_PAUSED;
+                    model_save_named(model, model->input_buffer);
+                    model->state = STATE_SAVE_SUCCESS;
+                    model->save_success_timer = 2.0f;
                 }
             }
+        }
+        else if (cmd == CMD_BACKSPACE)
+        {
+            int len = strlen(model->input_buffer);
+            if (len > 0)
+                model->input_buffer[len - 1] = '\0';
         }
         return;
     }
 
     // =================================================
-    // 7. CONFIRMATION QUITTER (OUI / NON / SAVE)
+    // 8. CONFIRMATION QUITTER
     // =================================================
     if (model->state == STATE_CONFIRM_QUIT)
     {
-        if (cmd == CMD_LEFT || cmd == CMD_UP || cmd == CMD_MOVE_LEFT)
+        if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
         {
             model->menu_selection--;
             if (model->menu_selection < 0)
                 model->menu_selection = 2;
         }
-        else if (cmd == CMD_RIGHT || cmd == CMD_DOWN || cmd == CMD_MOVE_RIGHT)
+        else if (cmd == CMD_DOWN || cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
         {
             model->menu_selection++;
             if (model->menu_selection > 2)
@@ -730,64 +734,58 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         }
         else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
         {
-            if (model->menu_selection == 0)
-                exit(0); // OUI
-            else if (model->menu_selection == 1)
-                model->state = model->previous_state; // NON
-            else if (model->menu_selection == 2)
-            { // SAVE & QUIT
+            model->sounds.play_select_sound = true; // SON OK
 
-                // --- CORRECTION MAJEURE ICI ---
-                model->pending_quit = true;
-                model_scan_saves(model);          // Scan des fichiers
-                model->state = STATE_SAVE_SELECT; // Vers la LISTE (Select), PAS la saisie (Input) !
+            if (model->menu_selection == 0)
+                exit(0);
+            else if (model->menu_selection == 1)
+            {
+                model->state = STATE_PAUSED;
+                model->menu_selection = 3;
+            }
+            else if (model->menu_selection == 2)
+            {
+                model_scan_saves(model);
+                model->state = STATE_SAVE_SELECT;
                 model->menu_selection = 0;
-                // -----------------------------
             }
         }
         else if (cmd == CMD_PAUSE)
         {
-            model->state = model->previous_state;
+            model->state = STATE_PAUSED;
         }
         return;
     }
 
     // =================================================
-    // 8. CONFIRMATION ÉCRASEMENT
+    // 9. CONFIRMATION ÉCRASEMENT
     // =================================================
     if (model->state == STATE_OVERWRITE_CONFIRM)
     {
-        if (cmd == CMD_LEFT || cmd == CMD_UP || cmd == CMD_MOVE_LEFT)
-            model->menu_selection = 0;
-        else if (cmd == CMD_RIGHT || cmd == CMD_DOWN || cmd == CMD_MOVE_RIGHT)
-            model->menu_selection = 1;
-
+        if (cmd == CMD_LEFT || cmd == CMD_RIGHT || cmd == CMD_UP || cmd == CMD_DOWN)
+        {
+            model->menu_selection = !model->menu_selection;
+        }
         else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
         {
+            model->sounds.play_select_sound = true; // SON AJOUTÉ ICI
+
             if (model->menu_selection == 0)
             { // OUI
-                char filename[64];
-                snprintf(filename, sizeof(filename), "%s.dat", model->input_buffer);
-                model_save_named(model, filename);
-                if (model->pending_quit)
-                    exit(0);
-                else
-                    model->state = STATE_PAUSED;
+                model_save_named(model, model->input_buffer);
+                model->state = STATE_SAVE_SUCCESS;
+                model->save_success_timer = 2.0f;
             }
             else
             { // NON
                 model->state = STATE_SAVE_INPUT;
             }
         }
-        else if (cmd == CMD_PAUSE)
-        {
-            model->state = STATE_SAVE_INPUT;
-        }
         return;
     }
 
     // =================================================
-    // 9. JEU (EN COURS)
+    // 10. JEU (EN COURS)
     // =================================================
     if (model->state == STATE_PLAYING)
     {
@@ -809,18 +807,15 @@ void model_handle_input(GameModel *model, GameCommand cmd)
             model->player.dx = PLAYER_SPEED;
             break;
         case CMD_SHOOT:
-            // 1. VÉRIFICATION DU TIMER (Anti-Spam)
             if (model->player.shoot_timer <= 0.0f)
             {
                 spawn_bullet(model,
                              model->player.x + model->player.width / 2.0f - BULLET_WIDTH / 2.0f,
                              model->player.y - 1,
-                             -BULLET_SPEED,         // Vitesse verticale uniquement
-                             ENTITY_BULLET_PLAYER); // <--- NE PAS OUBLIER LE TYPE !
-
-                // 2. RESET DU TIMER (0.5 secondes d'attente)
+                             -BULLET_SPEED,
+                             ENTITY_BULLET_PLAYER);
                 model->player.shoot_timer = 0.5f;
-                model->sounds.play_shoot = true; // <--- BIM
+                model->sounds.play_shoot = true; // SON TIR OK
             }
             break;
         case CMD_NONE:
@@ -833,30 +828,42 @@ void model_handle_input(GameModel *model, GameCommand cmd)
 }
 void model_update(GameModel *model, double dt)
 {
-    // 1. GESTION DU GAME OVER (TIMER)
+    // 1. Etats speciaux
+    if (model->state == STATE_SAVE_SUCCESS)
+    {
+        model->save_success_timer -= dt;
+        if (model->save_success_timer <= 0)
+            exit(0);
+        return;
+    }
     if (model->state == STATE_GAME_OVER)
     {
         model->game_over_timer += dt;
         return;
     }
-
-    // 2. PAUSE / MENU
     if (model->state != STATE_PLAYING)
         return;
 
-    // --- 0. GESTION DU TIMER DE TIR ---
+    // 2. Timers
     if (model->player.shoot_timer > 0.0f)
-    {
         model->player.shoot_timer -= dt;
-    }
-
-    // 3. GESTION DU TIMER D'EXPLOSION JOUEUR
     if (model->hit_timer > 0)
-    {
         model->hit_timer -= dt;
+
+    // 3. Animation Rythme
+    float beat_delay = 0.5f - (model->level * 0.05f);
+    if (beat_delay < 0.05f)
+        beat_delay = 0.05f;
+    model->animation_timer += dt;
+    if (model->animation_timer >= beat_delay)
+    {
+        model->animation_frame = !model->animation_frame;
+        model->animation_timer = 0;
+        model->sounds.play_beat = true;
+        model->sounds.beat_index = (model->sounds.beat_index + 1) % 4;
     }
 
-    // --- A. Mise à jour Joueur ---
+    // 4. Joueur
     if (model->player.active)
     {
         model->player.x += model->player.dx * dt;
@@ -866,39 +873,20 @@ void model_update(GameModel *model, double dt)
             model->player.x = GAME_WIDTH - model->player.width;
     }
 
-    // --- B. Animation ---
-    float beat_delay = 0.5f - (model->level * 0.05f);
-    if (beat_delay < 0.05f)
-        beat_delay = 0.05f; // Plancher de sécurité
+    // 5. UFO (Audio + Physique)
+    if (model->ufo.active && !model->ufo.exploding)
+        model->sounds.ufo_loopING = true;
+    else
+        model->sounds.ufo_loopING = false;
 
-    model->animation_timer += dt;
-
-    if (model->animation_timer >= beat_delay)
-    {
-        model->animation_frame = !model->animation_frame;
-        model->animation_timer = 0;
-
-        // --- GESTION DU SON RYTHMIQUE ---
-        model->sounds.play_beat = true;
-        model->sounds.beat_index++;
-        if (model->sounds.beat_index > 3)
-            model->sounds.beat_index = 0;
-        // --------------------------------
-    }
-    // --- C. GESTION DE L'OVNI (UFO) ---
     if (model->ufo.active)
     {
-        // 1. Si en train d'exploser
         if (model->ufo.exploding)
         {
             model->ufo.explode_timer -= dt;
             if (model->ufo.explode_timer <= 0)
-            {
-                model->ufo.active = false; // Disparition finale
-            }
-            // On ne fait PAS le mouvement else if
+                model->ufo.active = false;
         }
-        // 2. Sinon, mouvement normal
         else
         {
             model->ufo.x += model->ufo.dx * dt;
@@ -911,63 +899,40 @@ void model_update(GameModel *model, double dt)
     }
     else
     {
-        // Logique de spawn UFO (inchangée)
+        // Spawn simple logic
         bool enemies_alive = false;
         for (int i = 0; i < MAX_ENEMIES; i++)
-        {
             if (model->enemies[i].active)
-            {
                 enemies_alive = true;
-                break;
-            }
-        }
-        if (!model->ufo.hasSpawnedThisLevel && enemies_alive)
-        {
-            if (rand() % 150 == 0)
-                spawn_ufo(model);
-        }
+        if (!model->ufo.hasSpawnedThisLevel && enemies_alive && rand() % 150 == 0)
+            spawn_ufo(model);
     }
 
-    // --- D. Gestion Ennemis ---
-    bool touch_edge = false;
+    // 6. Ennemis et Level Up
     int active_enemies = 0;
-
+    bool touch_edge = false;
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
         if (!model->enemies[i].active)
             continue;
-
-        // =====================================================
-        // 1. GESTION EXPLOSION ENNEMI (AJOUTÉ ICI)
-        // =====================================================
         if (model->enemies[i].exploding)
         {
             model->enemies[i].explode_timer -= dt;
             if (model->enemies[i].explode_timer <= 0)
-            {
-                model->enemies[i].active = false; // Mort réelle
-            }
-            continue; // On passe au suivant, celui-ci ne bouge pas
+                model->enemies[i].active = false;
+            continue;
         }
-        // =====================================================
-
         active_enemies++;
-
-        // Vérification des bords (seulement pour ceux qui n'explosent pas)
         if ((model->enemies[i].x <= 0 && model->direction_enemies == -1) ||
             (model->enemies[i].x >= GAME_WIDTH - ENEMY_WIDTH && model->direction_enemies == 1))
-        {
             touch_edge = true;
-        }
     }
 
-    // 2. PASSAGE AU NIVEAU SUIVANT
     if (active_enemies == 0)
     {
         model->level++;
+        model->sounds.play_level_up = true;
         init_enemies(model);
-
-        // Reset variables niveau
         model->drop_direction = 1;
         model->drop_step_count = 0;
         model->direction_enemies = 1;
@@ -976,100 +941,77 @@ void model_update(GameModel *model, double dt)
         return;
     }
 
-    // 3. MOUVEMENT (Seulement si pas en train d'exploser)
+    // Mouvements Ennemis
     if (touch_edge)
     {
         model->direction_enemies *= -1;
-        float move_y = 0;
+        float move_y = (model->drop_direction == 1) ? ENEMY_DROP_HEIGHT : -ENEMY_DROP_HEIGHT;
         if (model->drop_direction == 1)
         {
-            move_y = ENEMY_DROP_HEIGHT;
-            model->drop_step_count++;
-            if (model->drop_step_count >= 3)
+            if (++model->drop_step_count >= 3)
                 model->drop_direction = -1;
         }
         else
         {
-            move_y = -ENEMY_DROP_HEIGHT;
-            model->drop_step_count--;
-            if (model->drop_step_count <= 0)
+            if (--model->drop_step_count <= 0)
                 model->drop_direction = 1;
         }
-
         for (int i = 0; i < MAX_ENEMIES; i++)
-        {
-            // On ne bouge que ceux qui sont actifs ET qui n'explosent pas
             if (model->enemies[i].active && !model->enemies[i].exploding)
             {
                 model->enemies[i].y += move_y;
                 model->enemies[i].x += model->direction_enemies * 2.0f;
             }
-        }
     }
     else
     {
         float speed = ENEMY_SPEED_BASE * model->enemy_speed_mult * model->direction_enemies;
         for (int i = 0; i < MAX_ENEMIES; i++)
-        {
             if (model->enemies[i].active && !model->enemies[i].exploding)
-            {
                 model->enemies[i].x += speed * dt;
-            }
-        }
     }
 
-    // --- E. Tir Ennemi ---
-    int fire_chance = 100;
-    if (utils_random_int(0, fire_chance) < model->level + 1)
+    // Tirs Ennemis
+    if (utils_random_int(0, 100) < model->level + 1)
     {
         for (int k = 0; k < 10; k++)
         {
             int idx = utils_random_int(0, MAX_ENEMIES - 1);
-            // On vérifie qu'il n'explose pas avant de tirer
             if (model->enemies[idx].active && !model->enemies[idx].exploding)
             {
-                spawn_bullet(model,
-                             model->enemies[idx].x + ENEMY_WIDTH / 2,
-                             model->enemies[idx].y + ENEMY_HEIGHT,
-                             BULLET_SPEED * 0.6f,
-                             ENTITY_BULLET_ENEMY);
+                spawn_bullet(model, model->enemies[idx].x + ENEMY_WIDTH / 2, model->enemies[idx].y + ENEMY_HEIGHT, BULLET_SPEED * 0.6f, ENTITY_BULLET_ENEMY);
                 break;
             }
         }
     }
 
-    // --- F. Mise à jour Balles ---
+    // 7. Balles & Collisions (Sans fonction externe pour éviter l'erreur)
     for (int i = 0; i < MAX_BULLETS; i++)
     {
         Entity *b = &model->bullets[i];
         if (!b->active)
             continue;
-
         b->y += b->dy * dt;
-
-        // Animation Balle
         b->anim_timer += dt;
         if (b->anim_timer >= 0.05f)
         {
-            b->anim_timer = 0.0f;
-            b->anim_frame++;
-            if (b->anim_frame > 3)
-                b->anim_frame = 0;
+            b->anim_timer = 0;
+            b->anim_frame = (b->anim_frame + 1) % 4;
         }
-
         if (b->y < 0 || b->y > GAME_HEIGHT)
         {
             b->active = false;
             continue;
         }
 
-        // --- COLLISION BALLE vs BOUCLIERS ---
+        // Boucliers
         bool hit_shield = false;
         for (int s = 0; s < MAX_SHIELDS; s++)
         {
             Shield *sh = &model->shields[s];
             if (sh->active)
             {
+                // Collision Simple AABB directe (plus d'erreur implicit declaration)
                 if (b->x < sh->x + sh->width && b->x + b->width > sh->x &&
                     b->y < sh->y + sh->height && b->y + b->height > sh->y)
                 {
@@ -1084,57 +1026,33 @@ void model_update(GameModel *model, double dt)
         }
         if (hit_shield)
             continue;
-        // Si l'UFO est actif et n'explose pas, le son doit tourner
-        if (model->ufo.active && !model->ufo.exploding)
-        {
-            model->sounds.ufo_loopING = true;
-        }
-        else
-        {
-            model->sounds.ufo_loopING = false;
-        }
-        // --- COLLISIONS BALLE JOUEUR ---
+
+        // Joueur vs ...
         if (b->type == ENTITY_BULLET_PLAYER)
         {
-            // 1. VS UFO
-            // On vérifie qu'il n'explose pas DÉJÀ
+            // Vs UFO
             if (model->ufo.active && !model->ufo.exploding)
             {
-                Entity ufoProxy = {.x = model->ufo.x, .y = model->ufo.y, .width = model->ufo.width, .height = model->ufo.height, .active = true};
-                if (check_collision(b, &ufoProxy))
-                {
+                if (check_collision(b, (Entity *)&model->ufo))
+                { // Cast safe ici
                     b->active = false;
-
-                    // ======================================
-                    // DÉCLENCHEMENT EXPLOSION UFO
-                    // ======================================
                     model->ufo.exploding = true;
-                    model->sounds.play_invader_killed = true; // <--- Son UFO détruit (ou un autre si tu veux)
-                    model->ufo.explode_timer = 0.2f;          // Durée de l'explosion
-                    // ======================================
-
+                    model->sounds.play_invader_killed = true;
+                    model->ufo.explode_timer = 0.2f;
                     model->score += 60;
                     model->lives++;
                     continue;
                 }
             }
-
-            // 2. VS ENNEMIS CLASSIQUES
+            // Vs Ennemis
             for (int e = 0; e < MAX_ENEMIES; e++)
             {
-                // On vérifie qu'il n'explose pas DÉJÀ
                 if (model->enemies[e].active && !model->enemies[e].exploding && check_collision(b, &model->enemies[e]))
                 {
                     b->active = false;
-
-                    // ======================================
-                    // DÉCLENCHEMENT EXPLOSION ENNEMI
-                    // ======================================
                     model->enemies[e].exploding = true;
-                    model->sounds.play_invader_killed = true; // <--- BIM
-                    model->enemies[e].explode_timer = 0.2f;   // Durée de l'explosion
-                    // ======================================
-
+                    model->sounds.play_invader_killed = true;
+                    model->enemies[e].explode_timer = 0.2f;
                     int pts = 10;
                     if (model->enemies[e].type == ENTITY_ENEMY_TYPE_2)
                         pts = 20;
@@ -1145,26 +1063,24 @@ void model_update(GameModel *model, double dt)
                 }
             }
         }
-        // --- COLLISIONS BALLE ENNEMIE ---
-        else if (b->type == ENTITY_BULLET_ENEMY)
-        {
+        else
+        { // Balle ennemie
             if (model->player.active && check_collision(b, &model->player))
             {
                 b->active = false;
                 if (model->hit_timer <= 0)
                 {
-                    model->sounds.play_player_explosion = true; // <--- BIM
+                    model->sounds.play_player_explosion = true;
                     model->lives--;
                     if (model->lives <= 0)
                     {
                         model->state = STATE_GAME_OVER;
+                        model->sounds.play_game_over = true;
                         model->menu_selection = 0;
-                        model->game_over_timer = 0.0f;
+                        model->game_over_timer = 0;
                     }
                     else
-                    {
                         model->hit_timer = 2.0f;
-                    }
                 }
             }
         }

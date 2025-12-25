@@ -1,0 +1,82 @@
+\doxysection{View\+Interface Struct Reference}
+\hypertarget{structViewInterface}{}\label{structViewInterface}\index{ViewInterface@{ViewInterface}}
+
+
+Structure regroupant les méthodes virtuelles de la Vue. Une implémentation concrète (ex\+: view\+\_\+sdl) doit remplir ces pointeurs.  
+
+
+
+
+{\ttfamily \#include $<$view\+\_\+interface.\+h$>$}
+
+\doxysubsubsection*{Data Fields}
+\begin{DoxyCompactItemize}
+\item 
+bool(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structViewInterface_a4a65a72b137a8a28a39a6ac0ba410508}{init}} )(void)
+\begin{DoxyCompactList}\small\item\em Initialise la librairie graphique (Fenêtre, Textures, Sons, etc.). \end{DoxyCompactList}\item 
+\Hypertarget{structViewInterface_adf0fcaa2fafda7ab6197f4eee1775bab}\label{structViewInterface_adf0fcaa2fafda7ab6197f4eee1775bab} 
+void(\texorpdfstring{$\ast$}{*} {\bfseries close} )(void)
+\begin{DoxyCompactList}\small\item\em Ferme la fenêtre et libère toutes les ressources allouées (Textures, Mémoire). Doit être appelé avant de quitter le programme. \end{DoxyCompactList}\item 
+void(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structViewInterface_aa78cae014c7a327610e2cf94b215a0c7}{render}} )(const \mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model)
+\begin{DoxyCompactList}\small\item\em Dessine l\textquotesingle{}état actuel du jeu à l\textquotesingle{}écran. Cette fonction est appelée à chaque frame (60 fois par seconde). \end{DoxyCompactList}\item 
+\mbox{\hyperlink{controller_8h_abc5a0df439bf92177bc39309fe831280}{Game\+Command}}(\texorpdfstring{$\ast$}{*} \mbox{\hyperlink{structViewInterface_ab84c4c093f2ea4df2ca75a589b8fefb1}{get\+\_\+input}} )(\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model)
+\begin{DoxyCompactList}\small\item\em Récupère les entrées utilisateur (Clavier, Souris, Manette). \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Structure regroupant les méthodes virtuelles de la Vue. Une implémentation concrète (ex\+: view\+\_\+sdl) doit remplir ces pointeurs. 
+
+\label{doc-variable-members}
+\Hypertarget{structViewInterface_doc-variable-members}
+\doxysubsection{Field Documentation}
+\Hypertarget{structViewInterface_ab84c4c093f2ea4df2ca75a589b8fefb1}\index{ViewInterface@{ViewInterface}!get\_input@{get\_input}}
+\index{get\_input@{get\_input}!ViewInterface@{ViewInterface}}
+\doxysubsubsection{\texorpdfstring{get\_input}{get\_input}}
+{\footnotesize\ttfamily \label{structViewInterface_ab84c4c093f2ea4df2ca75a589b8fefb1} 
+\mbox{\hyperlink{controller_8h_abc5a0df439bf92177bc39309fe831280}{Game\+Command}}(\texorpdfstring{$\ast$}{*} View\+Interface\+::get\+\_\+input) (\mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model)}
+
+
+
+Récupère les entrées utilisateur (Clavier, Souris, Manette). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur vers le modèle (utile si l\textquotesingle{}input dépend de l\textquotesingle{}état, ex\+: saisie de texte). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Une commande abstraite (\doxylink{controller_8h_abc5a0df439bf92177bc39309fe831280}{Game\+Command}) à traiter par le contrôleur. 
+\end{DoxyReturn}
+\Hypertarget{structViewInterface_a4a65a72b137a8a28a39a6ac0ba410508}\index{ViewInterface@{ViewInterface}!init@{init}}
+\index{init@{init}!ViewInterface@{ViewInterface}}
+\doxysubsubsection{\texorpdfstring{init}{init}}
+{\footnotesize\ttfamily \label{structViewInterface_a4a65a72b137a8a28a39a6ac0ba410508} 
+bool(\texorpdfstring{$\ast$}{*} View\+Interface\+::init) (void)}
+
+
+
+Initialise la librairie graphique (Fenêtre, Textures, Sons, etc.). 
+
+\begin{DoxyReturn}{Returns}
+true en cas de succès, false si une erreur critique survient. 
+\end{DoxyReturn}
+\Hypertarget{structViewInterface_aa78cae014c7a327610e2cf94b215a0c7}\index{ViewInterface@{ViewInterface}!render@{render}}
+\index{render@{render}!ViewInterface@{ViewInterface}}
+\doxysubsubsection{\texorpdfstring{render}{render}}
+{\footnotesize\ttfamily \label{structViewInterface_aa78cae014c7a327610e2cf94b215a0c7} 
+void(\texorpdfstring{$\ast$}{*} View\+Interface\+::render) (const \mbox{\hyperlink{structGameModel}{Game\+Model}} \texorpdfstring{$\ast$}{*}model)}
+
+
+
+Dessine l\textquotesingle{}état actuel du jeu à l\textquotesingle{}écran. Cette fonction est appelée à chaque frame (60 fois par seconde). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em model} & Pointeur constant vers le modèle (Lecture seule pour l\textquotesingle{}affichage). \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{view__interface_8h}{view\+\_\+interface.\+h}}\end{DoxyCompactItemize}

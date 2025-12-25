@@ -1,0 +1,24 @@
+\doxysection{include/view\+\_\+interface.h File Reference}
+\hypertarget{view__interface_8h}{}\label{view__interface_8h}\index{include/view\_interface.h@{include/view\_interface.h}}
+
+
+Définition de l\textquotesingle{}interface abstraite pour les Vues.  
+
+
+{\ttfamily \#include "{}model.\+h"{}}\newline
+{\ttfamily \#include "{}controller.\+h"{}}\newline
+\doxysubsubsection*{Data Structures}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structViewInterface}{View\+Interface}}
+\begin{DoxyCompactList}\small\item\em Structure regroupant les méthodes virtuelles de la Vue. Une implémentation concrète (ex\+: view\+\_\+sdl) doit remplir ces pointeurs. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Définition de l\textquotesingle{}interface abstraite pour les Vues. 
+
+Ce fichier définit un "{}contrat"{} (via une structure de pointeurs de fonctions) que toutes les interfaces graphiques (SDL, Ncurses, etc.) doivent respecter. Cela permet au moteur de jeu d\textquotesingle{}utiliser n\textquotesingle{}importe quelle vue de manière interchangeable (Pattern Strategy / Polymorphisme).
+
+\begin{DoxyDate}{Date}
+2024 
+\end{DoxyDate}
