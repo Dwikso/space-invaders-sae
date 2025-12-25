@@ -1,5 +1,4 @@
 build/
 space_invaders
-external/*
 *.o
 *.a
