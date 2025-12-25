@@ -138,6 +138,11 @@ typedef struct
     int save_file_count;                  // Combien on en a trouvé
     bool pending_quit;                    // Est-ce qu'on doit quitter après la sauvegarde ?
     SoundState sounds;
+
+    // --- AJOUT GESTION VOLUME ---
+    int volume;    // De 0 à 100
+    bool is_muted; // true = silence total
+    // ---------------------------
 } GameModel;
 
 // --- Fonctions Publiques (API du Modèle) ---

@@ -177,6 +177,9 @@ GameModel *model_init(void)
     model->player.y = GAME_HEIGHT - PLAYER_HEIGHT - 1;
     model->player.dx = 0;
     model->player.dy = 0;
+    // --- INIT VOLUME ---
+    model->volume = 30; // 30% au début
+    model->is_muted = false;
     // Init sons
     model->sounds.play_shoot = false;
     model->sounds.play_invader_killed = false;
@@ -356,52 +359,79 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         if (cmd == CMD_PAUSE)
             exit(0);
 
-        // Navigation (Maintenant de 0 à 3)
-        if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
+        // 1. NAVIGATION VERTICALE (Changer d'option)
+        // On a maintenant 5 options (0 à 4) : Jouer, Tuto, Charger, Volume, Quitter
+        if (cmd == CMD_UP)
         {
             model->menu_selection--;
             if (model->menu_selection < 0)
-                model->menu_selection = 3; // <--- 3 est la dernière option
+                model->menu_selection = 4;
         }
-        else if (cmd == CMD_DOWN || cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
+        else if (cmd == CMD_DOWN)
         {
             model->menu_selection++;
-            if (model->menu_selection > 3)
-                model->menu_selection = 0; // <--- Retour à 0 après 3
+            if (model->menu_selection > 4)
+                model->menu_selection = 0;
         }
-        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
-        {
 
-            if (model->menu_selection == 0)
-            { // JOUER
-                // ... (Ton code d'initialisation du jeu inchangé) ...
-                init_enemies(model);
-                model->score = 0;
-                model->lives = 3;
-                model->level = 1;
-                model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
-                model->state = STATE_PLAYING;
+        // 2. LOGIQUE SPECIFIQUE SELON L'OPTION CHOISIE
+        if (model->menu_selection == 3) // --- OPTION VOLUME (Index 3) ---
+        {
+            if (cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
+            {
+                model->volume -= 10;
+                if (model->volume < 0)
+                    model->volume = 0;
+                model->is_muted = false; // Si on touche, on démute
             }
-            else if (model->menu_selection == 1)
-            { // TUTORIEL (NOUVEAU)
-                model->state = STATE_TUTORIAL;
+            else if (cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
+            {
+                model->volume += 10;
+                if (model->volume > 100)
+                    model->volume = 100;
+                model->is_muted = false;
             }
-            else if (model->menu_selection == 2)
-            { // CHARGER (Décalé en position 2)
-                model_scan_saves(model);
-                if (model->save_file_count > 0)
-                {
-                    model->state = STATE_LOAD_MENU;
-                    model->menu_selection = 0;
+            else if (cmd == CMD_SHOOT || cmd == CMD_RETURN)
+            {
+                // Sur la ligne volume, Entrée active/désactive le MUTE
+                model->is_muted = !model->is_muted;
+            }
+        }
+        else // --- AUTRES OPTIONS (Validation classique) ---
+        {
+            if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+            {
+                if (model->menu_selection == 0)
+                { // JOUER
+                    init_enemies(model);
+                    model->score = 0;
+                    model->lives = 3;
+                    model->level = 1;
+                    model->player.x = (GAME_WIDTH - PLAYER_WIDTH) / 2.0f;
+                    model->state = STATE_PLAYING;
                 }
-                else
-                {
-                    printf("Aucune sauvegarde trouvée !\n");
+                else if (model->menu_selection == 1)
+                { // TUTORIEL
+                    model->state = STATE_TUTORIAL;
                 }
-            }
-            else if (model->menu_selection == 3)
-            { // QUITTER (Décalé en position 3)
-                exit(0);
+                else if (model->menu_selection == 2)
+                { // CHARGER
+                    model_scan_saves(model);
+                    if (model->save_file_count > 0)
+                    {
+                        model->state = STATE_LOAD_MENU;
+                        model->menu_selection = 0;
+                    }
+                    else
+                    {
+                        printf("Aucune sauvegarde trouvée !\n");
+                    }
+                }
+                // Cas 3 (Volume) géré au dessus
+                else if (model->menu_selection == 4)
+                { // QUITTER
+                    exit(0);
+                }
             }
         }
         return;
@@ -511,43 +541,82 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     // =================================================
     // 4. MENU PAUSE
     // =================================================
+    // src/model.c -> model_handle_input
+
     if (model->state == STATE_PAUSED)
     {
+        // Touche ESC ou P pour reprendre direct
         if (cmd == CMD_PAUSE)
         {
             model->state = STATE_PLAYING;
             return;
         }
 
-        if (cmd == CMD_UP || cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
+        // 1. NAVIGATION VERTICALE (0 à 3)
+        // Options : 0=Reprendre, 1=Volume, 2=Sauvegarder, 3=Quitter
+        if (cmd == CMD_UP)
         {
             model->menu_selection--;
             if (model->menu_selection < 0)
-                model->menu_selection = 2;
+                model->menu_selection = 3;
         }
-        else if (cmd == CMD_DOWN || cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
+        else if (cmd == CMD_DOWN)
         {
             model->menu_selection++;
-            if (model->menu_selection > 2)
+            if (model->menu_selection > 3)
                 model->menu_selection = 0;
         }
-        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+
+        // 2. GESTION VOLUME (Index 1)
+        // On le gère ici pour les flèches GAUCHE/DROITE
+        if (model->menu_selection == 1)
         {
-            if (model->menu_selection == 0)
-            { // SAUVEGARDER
-                model_scan_saves(model);
-                model->state = STATE_SAVE_SELECT; // <--- Vers la liste !
-                model->menu_selection = 0;
+            if (cmd == CMD_LEFT || cmd == CMD_MOVE_LEFT)
+            {
+                model->volume -= 10;
+                if (model->volume < 0)
+                    model->volume = 0;
+                model->is_muted = false;
             }
-            else if (model->menu_selection == 1)
-            { // REJOUER
-                reset_game(model);
+            else if (cmd == CMD_RIGHT || cmd == CMD_MOVE_RIGHT)
+            {
+                model->volume += 10;
+                if (model->volume > 100)
+                    model->volume = 100;
+                model->is_muted = false;
             }
-            else
-            { // QUITTER
-                model->previous_state = model->state;
-                model->state = STATE_CONFIRM_QUIT;
-                model->menu_selection = 1;
+            else if (cmd == CMD_SHOOT || cmd == CMD_RETURN)
+            {
+                model->is_muted = !model->is_muted;
+            }
+        }
+        else
+        {
+            // 3. VALIDATION DES AUTRES OPTIONS
+            if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+            {
+                if (model->menu_selection == 0)
+                {
+                    // REPRENDRE
+                    model->state = STATE_PLAYING;
+                }
+                // Cas 1 (Volume) géré au dessus
+                else if (model->menu_selection == 2)
+                {
+                    // SAUVEGARDER ET QUITTER
+                    // On lance le scan des sauvegardes et on va vers l'écran de choix
+                    model_scan_saves(model);
+                    model->state = STATE_SAVE_SELECT;
+                    model->menu_selection = 0;
+                }
+                else if (model->menu_selection == 3)
+                {
+                    // QUITTER SANS SAUVEGARDER (Retour Menu Principal)
+                    // On peut ajouter une confirmation ici si tu veux,
+                    // mais pour l'instant ça retourne au menu.
+                    model->state = STATE_MENU;
+                    model->menu_selection = 0;
+                }
             }
         }
         return;
