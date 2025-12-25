@@ -10,7 +10,7 @@
 
 // --- Constantes UFO ---
 #define UFO_POINTS 60
-#define UFO_SPEED 50.0f // Très rapide !
+#define UFO_SPEED 10.0f // Très rapide !
 #define UFO_WIDTH 4     // Taille arbitraire, adapte selon ton image bmp
 #define UFO_HEIGHT 2
 #define MAX_LIVES_NORMAL 3 // Le nombre de vies "standard" avant le bonus
@@ -38,6 +38,12 @@ typedef struct
     // --- AJOUT IMPORTANT POUR LE TIR ---
     float shoot_timer; // Temps restant avant le prochain tir (Cooldown)
     // -----------------------------------
+    // --- NOUVEAU POUR ANIMATION DES BALLES ---
+    float anim_timer; // Temps écoulé depuis la dernière frame d'animation
+    int anim_frame;   // Numéro de l'image (0, 1, 2 ou 3)
+    // ----------------------------------------
+    bool exploding;      // Est-ce qu'il est touché ?
+    float explode_timer; // Combien de temps afficher l'explosion
 } Entity;
 
 typedef enum
@@ -63,6 +69,8 @@ typedef struct
     float dx;                 // Direction et vitesse horizontale
     bool active;              // Est-il actuellement à l'écran ?
     bool hasSpawnedThisLevel; // Pour s'assurer qu'il ne passe qu'une fois par niveau
+    bool exploding;
+    float explode_timer;
 } Ufo;
 
 typedef struct
@@ -72,7 +80,20 @@ typedef struct
     int health; // 10 = Full, 9 = Damage_1 ... 1 = Damage_9, 0 = Mort
     bool active;
 } Shield;
+typedef struct
+{
+    // Drapeaux (Flags) : Si true, le son doit être joué, puis remis à false par la vue
+    bool play_shoot;
+    bool play_invader_killed;
+    bool play_player_explosion;
 
+    // Pour le rythme de fond (Beat)
+    bool play_beat; // Doit-on jouer une note de fond ?
+    int beat_index; // 0, 1, 2 ou 3 (pour fastinvader1..4)
+
+    // État continu
+    bool ufo_loopING; // L'UFO est-il en train de faire du bruit ?
+} SoundState;
 typedef struct
 {
     GameStateEnum state;
@@ -116,6 +137,7 @@ typedef struct
     char save_files[MAX_SAVE_FILES][256]; // Liste des noms de fichiers
     int save_file_count;                  // Combien on en a trouvé
     bool pending_quit;                    // Est-ce qu'on doit quitter après la sauvegarde ?
+    SoundState sounds;
 } GameModel;
 
 // --- Fonctions Publiques (API du Modèle) ---

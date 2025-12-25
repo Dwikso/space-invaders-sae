@@ -45,6 +45,8 @@ static void spawn_bullet(GameModel *model, float x, float y, float dy, EntityTyp
             model->bullets[i].active = true;
             model->bullets[i].x = x;
             model->bullets[i].y = y;
+            model->bullets[i].anim_timer = 0.0f;
+            model->bullets[i].anim_frame = 0;
             model->bullets[i].width = BULLET_WIDTH;
             model->bullets[i].height = BULLET_HEIGHT;
             model->bullets[i].dx = 0;
@@ -87,7 +89,10 @@ static void init_enemies(GameModel *model)
 
             Entity *e = &model->enemies[count];
             e->active = true;
-
+            // --- AJOUTE CES 2 LIGNES ICI ---
+            e->exploding = false;
+            e->explode_timer = 0.0f;
+            // -------------------------------
             // Types
             if (r == 0)
                 e->type = ENTITY_ENEMY_TYPE_3; // Haut
@@ -127,6 +132,10 @@ static void spawn_ufo(GameModel *model)
 {
     model->ufo.active = true;
     model->ufo.hasSpawnedThisLevel = true;
+    // --- AJOUTE CES 2 LIGNES ICI ---
+    model->ufo.exploding = false;
+    model->ufo.explode_timer = 0.0f;
+    // -------------------------------
 
     // Pile ou face : vient de gauche ou de droite ?
     if (rand() % 2 == 0)
@@ -168,6 +177,13 @@ GameModel *model_init(void)
     model->player.y = GAME_HEIGHT - PLAYER_HEIGHT - 1;
     model->player.dx = 0;
     model->player.dy = 0;
+    // Init sons
+    model->sounds.play_shoot = false;
+    model->sounds.play_invader_killed = false;
+    model->sounds.play_player_explosion = false;
+    model->sounds.play_beat = false;
+    model->sounds.beat_index = 0;
+    model->sounds.ufo_loopING = false;
 
     for (int i = 0; i < MAX_BULLETS; i++)
         model->bullets[i].active = false;
@@ -735,6 +751,7 @@ void model_handle_input(GameModel *model, GameCommand cmd)
 
                 // 2. RESET DU TIMER (0.5 secondes d'attente)
                 model->player.shoot_timer = 0.5f;
+                model->sounds.play_shoot = true; // <--- BIM
             }
             break;
         case CMD_NONE:
@@ -758,17 +775,13 @@ void model_update(GameModel *model, double dt)
     if (model->state != STATE_PLAYING)
         return;
 
-    // ============================================================
-    // --- 0. GESTION DU TIMER DE TIR (AJOUT CRUCIAL) ---
-    // C'est cette ligne qui permet de tirer à nouveau !
-    // ============================================================
+    // --- 0. GESTION DU TIMER DE TIR ---
     if (model->player.shoot_timer > 0.0f)
     {
         model->player.shoot_timer -= dt;
     }
-    // ============================================================
 
-    // 3. GESTION DU TIMER D'EXPLOSION JOUEUR (Invincibilité)
+    // 3. GESTION DU TIMER D'EXPLOSION JOUEUR
     if (model->hit_timer > 0)
     {
         model->hit_timer -= dt;
@@ -785,25 +798,51 @@ void model_update(GameModel *model, double dt)
     }
 
     // --- B. Animation ---
+    float beat_delay = 0.5f - (model->level * 0.05f);
+    if (beat_delay < 0.05f)
+        beat_delay = 0.05f; // Plancher de sécurité
+
     model->animation_timer += dt;
-    if (model->animation_timer >= 0.5f)
+
+    if (model->animation_timer >= beat_delay)
     {
         model->animation_frame = !model->animation_frame;
         model->animation_timer = 0;
-    }
 
+        // --- GESTION DU SON RYTHMIQUE ---
+        model->sounds.play_beat = true;
+        model->sounds.beat_index++;
+        if (model->sounds.beat_index > 3)
+            model->sounds.beat_index = 0;
+        // --------------------------------
+    }
     // --- C. GESTION DE L'OVNI (UFO) ---
     if (model->ufo.active)
     {
-        model->ufo.x += model->ufo.dx * dt;
-        if ((model->ufo.dx > 0 && model->ufo.x > GAME_WIDTH) ||
-            (model->ufo.dx < 0 && model->ufo.x + model->ufo.width < 0))
+        // 1. Si en train d'exploser
+        if (model->ufo.exploding)
         {
-            model->ufo.active = false;
+            model->ufo.explode_timer -= dt;
+            if (model->ufo.explode_timer <= 0)
+            {
+                model->ufo.active = false; // Disparition finale
+            }
+            // On ne fait PAS le mouvement else if
+        }
+        // 2. Sinon, mouvement normal
+        else
+        {
+            model->ufo.x += model->ufo.dx * dt;
+            if ((model->ufo.dx > 0 && model->ufo.x > GAME_WIDTH) ||
+                (model->ufo.dx < 0 && model->ufo.x + model->ufo.width < 0))
+            {
+                model->ufo.active = false;
+            }
         }
     }
     else
     {
+        // Logique de spawn UFO (inchangée)
         bool enemies_alive = false;
         for (int i = 0; i < MAX_ENEMIES; i++)
         {
@@ -813,7 +852,6 @@ void model_update(GameModel *model, double dt)
                 break;
             }
         }
-
         if (!model->ufo.hasSpawnedThisLevel && enemies_alive)
         {
             if (rand() % 150 == 0)
@@ -821,17 +859,32 @@ void model_update(GameModel *model, double dt)
         }
     }
 
-    // --- D. Gestion Ennemis (Logique Vitesse Constante par Niveau) ---
+    // --- D. Gestion Ennemis ---
     bool touch_edge = false;
     int active_enemies = 0;
 
-    // 1. Compter les vivants
     for (int i = 0; i < MAX_ENEMIES; i++)
     {
         if (!model->enemies[i].active)
             continue;
+
+        // =====================================================
+        // 1. GESTION EXPLOSION ENNEMI (AJOUTÉ ICI)
+        // =====================================================
+        if (model->enemies[i].exploding)
+        {
+            model->enemies[i].explode_timer -= dt;
+            if (model->enemies[i].explode_timer <= 0)
+            {
+                model->enemies[i].active = false; // Mort réelle
+            }
+            continue; // On passe au suivant, celui-ci ne bouge pas
+        }
+        // =====================================================
+
         active_enemies++;
 
+        // Vérification des bords (seulement pour ceux qui n'explosent pas)
         if ((model->enemies[i].x <= 0 && model->direction_enemies == -1) ||
             (model->enemies[i].x >= GAME_WIDTH - ENEMY_WIDTH && model->direction_enemies == 1))
         {
@@ -845,27 +898,19 @@ void model_update(GameModel *model, double dt)
         model->level++;
         init_enemies(model);
 
-        // Reset positions
+        // Reset variables niveau
         model->drop_direction = 1;
         model->drop_step_count = 0;
         model->direction_enemies = 1;
         model->ufo.hasSpawnedThisLevel = false;
-
-        // --- CALCUL VITESSE DU NOUVEAU NIVEAU ---
-        // Niveau 1 = 1.0 (100%)
-        // Niveau 2 = 1.2 (120%)
-        // Niveau 3 = 1.4 (140%)
-        // Ça reste FIXE jusqu'à la fin du niveau
         model->enemy_speed_mult = 1.0f + ((model->level - 1) * 0.2f);
-
         return;
     }
 
-    // 3. MOUVEMENT (VITESSE CONSTANTE)
+    // 3. MOUVEMENT (Seulement si pas en train d'exploser)
     if (touch_edge)
     {
-        model->direction_enemies *= -1; // Demi-tour
-
+        model->direction_enemies *= -1;
         float move_y = 0;
         if (model->drop_direction == 1)
         {
@@ -884,40 +929,41 @@ void model_update(GameModel *model, double dt)
 
         for (int i = 0; i < MAX_ENEMIES; i++)
         {
-            if (model->enemies[i].active)
+            // On ne bouge que ceux qui sont actifs ET qui n'explosent pas
+            if (model->enemies[i].active && !model->enemies[i].exploding)
             {
                 model->enemies[i].y += move_y;
                 model->enemies[i].x += model->direction_enemies * 2.0f;
             }
         }
-        // IMPORTANT : On n'augmente PAS la vitesse ici. Elle est constante.
     }
     else
     {
-        // On utilise simplement le multiplicateur du niveau calculé au début
         float speed = ENEMY_SPEED_BASE * model->enemy_speed_mult * model->direction_enemies;
-
         for (int i = 0; i < MAX_ENEMIES; i++)
         {
-            if (model->enemies[i].active)
+            if (model->enemies[i].active && !model->enemies[i].exploding)
+            {
                 model->enemies[i].x += speed * dt;
+            }
         }
     }
 
     // --- E. Tir Ennemi ---
-    int fire_chance = 100; // Plus c'est bas, plus ils tirent
+    int fire_chance = 100;
     if (utils_random_int(0, fire_chance) < model->level + 1)
     {
         for (int k = 0; k < 10; k++)
         {
             int idx = utils_random_int(0, MAX_ENEMIES - 1);
-            if (model->enemies[idx].active)
+            // On vérifie qu'il n'explose pas avant de tirer
+            if (model->enemies[idx].active && !model->enemies[idx].exploding)
             {
                 spawn_bullet(model,
                              model->enemies[idx].x + ENEMY_WIDTH / 2,
                              model->enemies[idx].y + ENEMY_HEIGHT,
-                             BULLET_SPEED * 0.6f,  // Vitesse positive pour descendre
-                             ENTITY_BULLET_ENEMY); // Type ennemi
+                             BULLET_SPEED * 0.6f,
+                             ENTITY_BULLET_ENEMY);
                 break;
             }
         }
@@ -930,8 +976,17 @@ void model_update(GameModel *model, double dt)
         if (!b->active)
             continue;
 
-        // Mouvement vertical pur (on ignore dx pour être sûr)
         b->y += b->dy * dt;
+
+        // Animation Balle
+        b->anim_timer += dt;
+        if (b->anim_timer >= 0.05f)
+        {
+            b->anim_timer = 0.0f;
+            b->anim_frame++;
+            if (b->anim_frame > 3)
+                b->anim_frame = 0;
+        }
 
         if (b->y < 0 || b->y > GAME_HEIGHT)
         {
@@ -960,18 +1015,35 @@ void model_update(GameModel *model, double dt)
         }
         if (hit_shield)
             continue;
-
+        // Si l'UFO est actif et n'explose pas, le son doit tourner
+        if (model->ufo.active && !model->ufo.exploding)
+        {
+            model->sounds.ufo_loopING = true;
+        }
+        else
+        {
+            model->sounds.ufo_loopING = false;
+        }
         // --- COLLISIONS BALLE JOUEUR ---
         if (b->type == ENTITY_BULLET_PLAYER)
         {
             // 1. VS UFO
-            if (model->ufo.active)
+            // On vérifie qu'il n'explose pas DÉJÀ
+            if (model->ufo.active && !model->ufo.exploding)
             {
                 Entity ufoProxy = {.x = model->ufo.x, .y = model->ufo.y, .width = model->ufo.width, .height = model->ufo.height, .active = true};
                 if (check_collision(b, &ufoProxy))
                 {
                     b->active = false;
-                    model->ufo.active = false;
+
+                    // ======================================
+                    // DÉCLENCHEMENT EXPLOSION UFO
+                    // ======================================
+                    model->ufo.exploding = true;
+                    model->sounds.play_invader_killed = true; // <--- Son UFO détruit (ou un autre si tu veux)
+                    model->ufo.explode_timer = 0.2f;          // Durée de l'explosion
+                    // ======================================
+
                     model->score += 60;
                     model->lives++;
                     continue;
@@ -981,10 +1053,18 @@ void model_update(GameModel *model, double dt)
             // 2. VS ENNEMIS CLASSIQUES
             for (int e = 0; e < MAX_ENEMIES; e++)
             {
-                if (model->enemies[e].active && check_collision(b, &model->enemies[e]))
+                // On vérifie qu'il n'explose pas DÉJÀ
+                if (model->enemies[e].active && !model->enemies[e].exploding && check_collision(b, &model->enemies[e]))
                 {
-                    model->enemies[e].active = false;
-                    b->active = false; // La balle disparaît !
+                    b->active = false;
+
+                    // ======================================
+                    // DÉCLENCHEMENT EXPLOSION ENNEMI
+                    // ======================================
+                    model->enemies[e].exploding = true;
+                    model->sounds.play_invader_killed = true; // <--- BIM
+                    model->enemies[e].explode_timer = 0.2f;   // Durée de l'explosion
+                    // ======================================
 
                     int pts = 10;
                     if (model->enemies[e].type == ENTITY_ENEMY_TYPE_2)
@@ -992,7 +1072,7 @@ void model_update(GameModel *model, double dt)
                     if (model->enemies[e].type == ENTITY_ENEMY_TYPE_3)
                         pts = 40;
                     model->score += pts;
-                    break; // IMPORTANT : On casse la boucle pour ne pas tuer 2 ennemis
+                    break;
                 }
             }
         }
@@ -1004,6 +1084,7 @@ void model_update(GameModel *model, double dt)
                 b->active = false;
                 if (model->hit_timer <= 0)
                 {
+                    model->sounds.play_player_explosion = true; // <--- BIM
                     model->lives--;
                     if (model->lives <= 0)
                     {
@@ -1013,7 +1094,7 @@ void model_update(GameModel *model, double dt)
                     }
                     else
                     {
-                        model->hit_timer = 2.0f; // 2 sec d'invincibilité
+                        model->hit_timer = 2.0f;
                     }
                 }
             }

@@ -4,6 +4,7 @@
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <stdlib.h>
+#include <SDL3_mixer/SDL_mixer.h>
 // --- Configuration des Ressources ---
 #define WIN_WIDTH 1280
 #define WIN_HEIGHT 768
@@ -72,7 +73,24 @@ static struct
     SDL_Texture *tex_expl_a;
     SDL_Texture *tex_expl_b;
     SDL_Texture *tex_shields[10];
-    SDL_Texture *tex_ufo; // NOUVEAU
+    SDL_Texture *tex_ufo;        // NOUVEAU
+    SDL_Texture *tex_missile[4]; // Pour le joueur (missile_1 à 4)
+    SDL_Texture *tex_projectile[4];
+    SDL_Texture *tex_expl_enemy; // Pour les aliens normaux
+    SDL_Texture *tex_expl_ufo;   // Pour l'UFO
+                                 // --- NOUVELLE API AUDIO SDL3 ---
+    MIX_Mixer *mixer;            // Le moteur audio principal
+
+    MIX_Audio *snd_shoot; // Remplace Mix_Chunk
+    MIX_Audio *snd_killed;
+    MIX_Audio *snd_explosion;
+    MIX_Audio *snd_ufo;
+    MIX_Audio *snd_beat[4];
+
+    // Pour l'UFO qui boucle, on a besoin d'une "Piste" (Track)
+    MIX_Track *track_ufo;
+
+    int ufo_channel; // Pour pouvoir arrêter le son de l'UFO
 } ctx = {0};
 // --- Fonctions Utilitaires ---
 
@@ -168,12 +186,28 @@ static void draw_entity(SDL_Texture *tex, const Entity *e, int offset_x, int off
 // 1. Initialisation
 static bool sdl_init(void)
 {
-    // SDL_Init retourne true en cas de succès dans SDL3 (wrapper booléen)
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) || !TTF_Init())
+    // 1. Initialisation SDL (Vidéo, Events ET Audio)
+    // J'ai ajouté SDL_INIT_AUDIO pour préparer le terrain
+    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO))
     {
         fprintf(stderr, "Erreur SDL_Init: %s\n", SDL_GetError());
         return false;
     }
+
+    if (!TTF_Init())
+    {
+        fprintf(stderr, "Erreur TTF_Init: %s\n", SDL_GetError());
+        return false;
+    }
+
+    // --- AJOUT IMPORTANT : INITIALISATION DE LA LIBRAIRIE MIXER ---
+    // Sans ça, MIX_CreateMixerDevice échoue.
+    if (!MIX_Init())
+    {
+        fprintf(stderr, "Attention : Erreur MIX_Init : %s\n", SDL_GetError());
+        // On continue, mais le son risque de ne pas marcher
+    }
+    // -------------------------------------------------------------
 
     ctx.font = TTF_OpenFont(FONT_PATH, FONT_SIZE);
     ctx.font_title = TTF_OpenFont(FONT_PATH, 64);
@@ -190,13 +224,13 @@ static bool sdl_init(void)
     ctx.renderer = SDL_CreateRenderer(ctx.window, NULL);
     if (!ctx.renderer)
         return false;
-    // On garde seulement 4 arguments
+
     SDL_SetRenderLogicalPresentation(ctx.renderer, WIN_WIDTH, WIN_HEIGHT,
                                      SDL_LOGICAL_PRESENTATION_LETTERBOX);
     SCALE_X = (float)WIN_WIDTH / GAME_WIDTH;
     SCALE_Y = (float)WIN_HEIGHT / GAME_HEIGHT;
 
-    // Chargement des textures
+    // --- Chargement des textures ---
     ctx.tex_enemy1[0] = load_texture(IMG_ENEMY1_A);
     ctx.tex_enemy1[1] = load_texture(IMG_ENEMY1_B);
 
@@ -216,35 +250,90 @@ static bool sdl_init(void)
     ctx.tex_expl_a = load_texture(IMG_EXPLOSION_A);
     ctx.tex_expl_b = load_texture(IMG_EXPLOSION_B);
     ctx.tex_ufo = load_texture(IMG_UFO);
+
+    // Nouveaux assets
+    ctx.tex_missile[0] = IMG_LoadTexture(ctx.renderer, "assets/missiles/missile_1.bmp");
+    ctx.tex_missile[1] = IMG_LoadTexture(ctx.renderer, "assets/missiles/missile_2.bmp");
+    ctx.tex_missile[2] = IMG_LoadTexture(ctx.renderer, "assets/missiles/missile_3.bmp");
+    ctx.tex_missile[3] = IMG_LoadTexture(ctx.renderer, "assets/missiles/missile_4.bmp");
+
+    ctx.tex_projectile[0] = IMG_LoadTexture(ctx.renderer, "assets/projectiles/projectileA_1.bmp");
+    ctx.tex_projectile[1] = IMG_LoadTexture(ctx.renderer, "assets/projectiles/projectileA_2.bmp");
+    ctx.tex_projectile[2] = IMG_LoadTexture(ctx.renderer, "assets/projectiles/projectileA_3.bmp");
+    ctx.tex_projectile[3] = IMG_LoadTexture(ctx.renderer, "assets/projectiles/projectileA_4.bmp");
+
+    ctx.tex_expl_enemy = IMG_LoadTexture(ctx.renderer, "assets/explosions/enemyExplosion.bmp");
+    ctx.tex_expl_ufo = IMG_LoadTexture(ctx.renderer, "assets/explosions/ufoExplosion.bmp");
+
+    // --- AUDIO CONFIGURATION ---
+
+    // On crée un mixer relié au périphérique par défaut
+    SDL_AudioSpec spec = {SDL_AUDIO_S16, 2, 44100};
+
+    // Maintenant que MIX_Init est fait plus haut, ceci devrait marcher :
+    ctx.mixer = MIX_CreateMixerDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
+
+    if (!ctx.mixer)
+    {
+        printf("Erreur création Mixer: %s\n", SDL_GetError());
+    }
+    else
+    {
+        // Chargement des sons seulement si le mixer existe
+        ctx.snd_shoot = MIX_LoadAudio(ctx.mixer, "assets/audio/shootSound.wav", true);
+        ctx.snd_killed = MIX_LoadAudio(ctx.mixer, "assets/audio/invaderKilledSound.wav", true);
+        ctx.snd_explosion = MIX_LoadAudio(ctx.mixer, "assets/audio/explosionSound.wav", true);
+        ctx.snd_ufo = MIX_LoadAudio(ctx.mixer, "assets/audio/ufoSound.wav", true);
+
+        ctx.snd_beat[0] = MIX_LoadAudio(ctx.mixer, "assets/audio/fastinvader1.wav", true);
+        ctx.snd_beat[1] = MIX_LoadAudio(ctx.mixer, "assets/audio/fastinvader2.wav", true);
+        ctx.snd_beat[2] = MIX_LoadAudio(ctx.mixer, "assets/audio/fastinvader3.wav", true);
+        ctx.snd_beat[3] = MIX_LoadAudio(ctx.mixer, "assets/audio/fastinvader4.wav", true);
+
+        // Track UFO
+        if (ctx.snd_ufo)
+        {
+            ctx.track_ufo = MIX_CreateTrack(ctx.mixer);
+            if (ctx.track_ufo)
+            {
+                MIX_SetTrackAudio(ctx.track_ufo, ctx.snd_ufo);
+            }
+        }
+        else
+        {
+            ctx.track_ufo = NULL;
+        }
+    }
+
+    // Vérifications de chargement (Logs)
+    if (!ctx.snd_shoot || !ctx.snd_beat[0])
+        printf("Attention: Certains sons manquent dans assets/audio/\n");
+    if (!ctx.tex_expl_enemy || !ctx.tex_expl_ufo)
+        printf("Attention: Textures d'explosion manquantes.\n");
+    if (!ctx.tex_missile[0] || !ctx.tex_projectile[0])
+        printf("Attention : Certaines textures de projectiles n'ont pas ete chargees !\n");
     if (!ctx.tex_ufo)
         SDL_Log("Attention: UFO texture manquante !");
-    // A. Charger l'état intact (Index 0)
-    ctx.tex_shields[0] = load_texture("assets/shelter/shelter_full.bmp");
 
-    // B. Charger les dégâts (Index 1 à 9)
+    // Chargement Boucliers
+    ctx.tex_shields[0] = load_texture("assets/shelter/shelter_full.bmp");
     for (int i = 1; i <= 9; i++)
     {
         char path[64];
-        // Construit le nom : shelter_damage_1.bmp, shelter_damage_2.bmp...
         snprintf(path, sizeof(path), "assets/shelter/shelterDamaged_%d.bmp", i);
-
         ctx.tex_shields[i] = load_texture(path);
-
         if (!ctx.tex_shields[i])
             SDL_Log("Erreur chargement: %s", path);
     }
-    // Petit warning si ça échoue (optionnel)
+
     if (!ctx.tex_bg_menu || !ctx.tex_bg_game)
-    {
         SDL_Log("Attention : Fonds d'écran non trouvés !");
-    }
+
     ctx.tex_heart_full = load_texture(IMG_HEART_FULL);
     ctx.tex_heart_empty = load_texture(IMG_HEART_EMPTY);
 
     if (!ctx.tex_heart_full || !ctx.tex_heart_empty)
-    {
         SDL_Log("Attention : Images des coeurs manquantes !");
-    }
 
     return true;
 }
@@ -252,6 +341,36 @@ static bool sdl_init(void)
 // 2. Fermeture
 static void sdl_close(void)
 {
+    // Nettoyage Tracks
+    if (ctx.track_ufo)
+        MIX_DestroyTrack(ctx.track_ufo);
+
+    // Nettoyage Audio
+    if (ctx.snd_shoot)
+        MIX_DestroyAudio(ctx.snd_shoot);
+    if (ctx.snd_killed)
+        MIX_DestroyAudio(ctx.snd_killed);
+    if (ctx.snd_explosion)
+        MIX_DestroyAudio(ctx.snd_explosion);
+    if (ctx.snd_ufo)
+        MIX_DestroyAudio(ctx.snd_ufo);
+    for (int i = 0; i < 4; i++)
+        if (ctx.snd_beat[i])
+            MIX_DestroyAudio(ctx.snd_beat[i]);
+
+    // Nettoyage Mixer
+    if (ctx.mixer)
+        MIX_DestroyMixer(ctx.mixer);
+    if (ctx.tex_ufo)
+        SDL_DestroyTexture(ctx.tex_ufo);
+    // --- NETTOYAGE NOUVEAU ---
+    for (int i = 0; i < 4; i++)
+    {
+        if (ctx.tex_missile[i])
+            SDL_DestroyTexture(ctx.tex_missile[i]);
+        if (ctx.tex_projectile[i])
+            SDL_DestroyTexture(ctx.tex_projectile[i]);
+    }
     if (ctx.tex_player)
         SDL_DestroyTexture(ctx.tex_player);
 
@@ -277,7 +396,12 @@ static void sdl_close(void)
         SDL_DestroyTexture(ctx.tex_bg_menu);
     if (ctx.tex_bg_game)
         SDL_DestroyTexture(ctx.tex_bg_game); // et non plus tex_bg
-
+    // --- NETTOYAGE ---
+    if (ctx.tex_expl_enemy)
+        SDL_DestroyTexture(ctx.tex_expl_enemy);
+    if (ctx.tex_expl_ufo)
+        SDL_DestroyTexture(ctx.tex_expl_ufo);
+    // -----------------
     if (ctx.font)
         TTF_CloseFont(ctx.font);
     if (ctx.font_title)
@@ -304,6 +428,7 @@ static void sdl_close(void)
         if (ctx.tex_shields[i])
             SDL_DestroyTexture(ctx.tex_shields[i]);
     }
+    MIX_Quit();
     SDL_Quit();
 }
 
@@ -371,43 +496,70 @@ static void draw_game_world(const GameModel *model)
     {
         if (model->enemies[i].active)
         {
-            SDL_Texture *t = ctx.tex_enemy1[frame];
+            SDL_Texture *t = NULL;
 
-            if (model->enemies[i].type == ENTITY_ENEMY_TYPE_2)
+            // --- NOUVEAU : LOGIQUE D'AFFICHAGE ---
+            if (model->enemies[i].exploding)
             {
-                t = ctx.tex_enemy2[frame];
-                SDL_SetTextureColorMod(t, 255, 165, 0); // Orange
-            }
-            else if (model->enemies[i].type == ENTITY_ENEMY_TYPE_3)
-            {
-                t = ctx.tex_enemy3[frame];
-                SDL_SetTextureColorMod(t, 255, 50, 50); // Rouge
+                // Si il explose, on affiche la texture d'explosion
+                t = ctx.tex_expl_enemy;
+                // Pas besoin de couleur spéciale pour l'explosion
+                SDL_SetTextureColorMod(t, 255, 255, 255);
             }
             else
             {
-                SDL_SetTextureColorMod(t, 0, 255, 255); // Cyan
+                // Sinon, logique normale d'animation et de couleur
+                t = ctx.tex_enemy1[frame];
+                if (model->enemies[i].type == ENTITY_ENEMY_TYPE_2)
+                {
+                    t = ctx.tex_enemy2[frame];
+                    SDL_SetTextureColorMod(t, 255, 165, 0);
+                }
+                else if (model->enemies[i].type == ENTITY_ENEMY_TYPE_3)
+                {
+                    t = ctx.tex_enemy3[frame];
+                    SDL_SetTextureColorMod(t, 255, 50, 50);
+                }
+                else
+                {
+                    SDL_SetTextureColorMod(t, 0, 255, 255);
+                }
             }
+            // ------------------------------------
 
-            // On applique shake_x, shake_y aux ennemis aussi
             draw_entity(t, &model->enemies[i], shake_x, shake_y);
 
-            SDL_SetTextureColorMod(t, 255, 255, 255); // Reset couleur
+            // Reset couleur par sécurité si c'était un ennemi normal
+            if (!model->enemies[i].exploding)
+            {
+                SDL_SetTextureColorMod(t, 255, 255, 255);
+            }
         }
     }
     // --- DESSIN DE L'OVNI ---
     if (model->ufo.active)
     {
-        SDL_Texture *t = ctx.tex_ufo;
-        // On peut lui donner une couleur spéciale, ex: Magenta flashy
-        SDL_SetTextureColorMod(t, 255, 0, 255);
+        SDL_Texture *t = NULL;
 
-        // Dessin manuel car UFO n'est pas une struct Entity standard
+        // --- CHOIX DE LA TEXTURE ---
+        if (model->ufo.exploding)
+        {
+            t = ctx.tex_expl_ufo;
+        }
+        else
+        {
+            t = ctx.tex_ufo;
+            SDL_SetTextureColorMod(t, 255, 0, 255); // Magenta si normal
+        }
+        // ---------------------------
+
         SDL_FRect dst = {
             (model->ufo.x * SCALE_X) + shake_x,
             (model->ufo.y * SCALE_Y) + shake_y,
             model->ufo.width * SCALE_X,
             model->ufo.height * SCALE_Y};
         SDL_RenderTexture(ctx.renderer, t, NULL, &dst);
+
         SDL_SetTextureColorMod(t, 255, 255, 255); // Reset couleur
     }
 
@@ -448,18 +600,50 @@ static void draw_game_world(const GameModel *model)
         }
     }
 
-    // --- D. BALLES (Avec Shake) ---
+    // --- D. BALLES (AVEC SPRITES ANIMÉS ET SHAKE) ---
     for (int i = 0; i < MAX_BULLETS; i++)
     {
-        if (model->bullets[i].active)
-        {
-            if (model->bullets[i].type == ENTITY_BULLET_ENEMY)
-                SDL_SetTextureColorMod(ctx.tex_bullet, 255, 0, 0);
-            else
-                SDL_SetTextureColorMod(ctx.tex_bullet, 255, 255, 0);
+        const Entity *b = &model->bullets[i]; // Pointeur raccourci pour lisibilité
 
-            // On applique shake_x, shake_y aux balles
-            draw_entity(ctx.tex_bullet, &model->bullets[i], shake_x, shake_y);
+        if (b->active)
+        {
+            SDL_Texture *textureToDraw = NULL;
+
+            // 1. Choix de la texture selon le type et l'animation (0, 1, 2, 3)
+            if (b->type == ENTITY_BULLET_PLAYER)
+            {
+                textureToDraw = ctx.tex_missile[b->anim_frame];
+            }
+            else if (b->type == ENTITY_BULLET_ENEMY)
+            {
+                textureToDraw = ctx.tex_projectile[b->anim_frame];
+            }
+
+            // 2. Dessin
+            if (textureToDraw)
+            {
+                // On définit une taille visuelle fixe pour que le sprite soit beau (ex: 12x20)
+                // On ajoute le SCALE pour l'écran et le SHAKE pour le tremblement
+                SDL_FRect dst = {
+                    (b->x * SCALE_X) + shake_x,
+                    (b->y * SCALE_Y) + shake_y,
+                    SCALE_X, // Largeur visuelle
+                    SCALE_Y  // Hauteur visuelle
+                };
+
+                // On ne met pas de couleur (SDL_SetTextureColorMod) pour garder les couleurs du dessin bmp
+                SDL_RenderTexture(ctx.renderer, textureToDraw, NULL, &dst);
+            }
+            else
+            {
+                // FALLBACK : Si l'image n'est pas chargée, on dessine l'ancien carré
+                if (b->type == ENTITY_BULLET_ENEMY)
+                    SDL_SetTextureColorMod(ctx.tex_bullet, 255, 0, 0);
+                else
+                    SDL_SetTextureColorMod(ctx.tex_bullet, 255, 255, 0);
+
+                draw_entity(ctx.tex_bullet, b, shake_x, shake_y);
+            }
         }
     }
 }
@@ -467,9 +651,69 @@ static void draw_game_world(const GameModel *model)
 // 3. Rendu
 static void sdl_render(const GameModel *model)
 {
+    // Astuce pour modifier les flags
+    GameModel *mutable_model = (GameModel *)model;
+
+    if (ctx.mixer)
+    {
+        // 1. Sons ponctuels -> MIX_PlayAudio (Fire and Forget)
+        if (model->sounds.play_shoot)
+        {
+            if (ctx.snd_shoot)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_shoot);
+            mutable_model->sounds.play_shoot = false;
+        }
+
+        if (model->sounds.play_invader_killed)
+        {
+            if (ctx.snd_killed)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_killed);
+            mutable_model->sounds.play_invader_killed = false;
+        }
+
+        if (model->sounds.play_player_explosion)
+        {
+            if (ctx.snd_explosion)
+                MIX_PlayAudio(ctx.mixer, ctx.snd_explosion);
+            mutable_model->sounds.play_player_explosion = false;
+        }
+
+        // 2. Rythme
+        if (model->sounds.play_beat)
+        {
+            int idx = model->sounds.beat_index;
+            if (idx >= 0 && idx < 4 && ctx.snd_beat[idx])
+            {
+                MIX_PlayAudio(ctx.mixer, ctx.snd_beat[idx]);
+            }
+            mutable_model->sounds.play_beat = false;
+        }
+
+        // 3. UFO -> Gestion via Track (Piste)
+        if (ctx.track_ufo)
+        {
+            if (model->sounds.ufo_loopING)
+            {
+                // Si on doit jouer et que ce n'est pas déjà en lecture
+                if (!MIX_TrackPlaying(ctx.track_ufo))
+                {
+                    MIX_PlayTrack(ctx.track_ufo, 0); // 0 = options par défaut
+                }
+            }
+            else
+            {
+                // Si on doit arrêter
+                if (MIX_TrackPlaying(ctx.track_ufo))
+                {
+                    MIX_PauseTrack(ctx.track_ufo); // Ou MIX_StopTrack
+                }
+            }
+        }
+    }
     // --- JEU & PAUSE ---
     if (model->state == STATE_PLAYING)
     {
+
         if (ctx.tex_blur)
         {
             SDL_DestroyTexture(ctx.tex_blur);
