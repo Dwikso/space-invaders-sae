@@ -7,6 +7,4 @@
 	[submodule "external/SDL3_mixer"]
 		path = external/SDL3_mixer
 		url = https://github.com/libsdl-org/SDL_mixer.git
-	[submodule "external/SDL3_ttf"]
-		path = external/SDL3_ttf
-		url = https://github.com/libsdl-org/SDL_ttf.git
+	
