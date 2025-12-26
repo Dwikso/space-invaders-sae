@@ -6,29 +6,32 @@
 
 CC = gcc
 
-# Chemins d'inclusion (Headers)
-CFLAGS = -std=c99 -Wall -Wextra -g -Iinclude \
-         -Iexternal/SDL3/include \
-         -Iexternal/SDL3_image/include \
-         -Iexternal/SDL3_ttf/include \
-         -Iexternal/SDL3_mixer/include
+# Nom du dossier des dépendances
+EXT_DIR = 3rdParty
 
-# ⚠️ CORRECTION ICI : Changez install/lib en build
-LDFLAGS = -lm -lncurses $(SDL_LIBS) \
-          -Lexternal/SDL3_ttf/build -Wl,-rpath,external/SDL3_ttf/build \
-          -Lexternal/SDL3_mixer/build -Wl,-rpath,external/SDL3_mixer/build
+# Chemins d'inclusion (Headers)
+# On utilise $(EXT_DIR) pour plus de flexibilité
+CFLAGS = -std=c99 -Wall -Wextra -g -Iinclude \
+         -I$(EXT_DIR)/SDL3/include \
+         -I$(EXT_DIR)/SDL3_image/include \
+         -I$(EXT_DIR)/SDL3_ttf/include \
+         -I$(EXT_DIR)/SDL3_mixer/include
+
 # Détection des drapeaux pour SDL3 via pkg-config
 SDL_CFLAGS := $(shell pkg-config --cflags sdl3) 
-
 # Bibliothèques SDL (ordre important)
 SDL_LIBS   := $(shell pkg-config --libs sdl3) -lSDL3_ttf -lSDL3_image -lSDL3_mixer -lm
+
+# LDFLAGS : Mise à jour des chemins vers $(EXT_DIR)
+LDFLAGS = -lm -lncurses $(SDL_LIBS) \
+          -L$(EXT_DIR)/SDL3_ttf/build -Wl,-rpath,$(EXT_DIR)/SDL3_ttf/build \
+          -L$(EXT_DIR)/SDL3_mixer/build -Wl,-rpath,$(EXT_DIR)/SDL3_mixer/build
 
 # --- 2. Fichiers et Répertoires ---
 
 SRC_DIR = src
 OBJ_DIR = build
 BIN_DIR = .
-EXTERNAL_DIR = external
 
 TARGET = $(BIN_DIR)/space_invaders
 
@@ -41,15 +44,15 @@ all: dirs check-sdl3-ttf check-sdl3-mixer $(TARGET)
 
 # --- GESTION SDL3_TTF ---
 check-sdl3-ttf:
-	@if [ ! -d "$(EXTERNAL_DIR)/SDL3_ttf/build" ]; then \
-		echo "⚠️  SDL3_ttf n'est pas compilé. Compilation en cours..."; \
+	@if [ ! -d "$(EXT_DIR)/SDL3_ttf/build" ]; then \
+		echo "⚠️  SDL3_ttf n'est pas compilé dans $(EXT_DIR). Compilation..."; \
 		$(MAKE) compile-sdl3-ttf; \
 	fi
 
 compile-sdl3-ttf:
 	@echo "🔧 Compilation de SDL3_ttf..."
-	@mkdir -p $(EXTERNAL_DIR)/SDL3_ttf/build
-	@cd $(EXTERNAL_DIR)/SDL3_ttf/build && \
+	@mkdir -p $(EXT_DIR)/SDL3_ttf/build
+	@cd $(EXT_DIR)/SDL3_ttf/build && \
 	cmake .. -DCMAKE_BUILD_TYPE=Release \
 	         -DSDL3TTF_VENDORED=ON \
 	         -DSDL3TTF_SAMPLES=OFF && \
@@ -58,15 +61,15 @@ compile-sdl3-ttf:
 
 # --- GESTION SDL3_MIXER ---
 check-sdl3-mixer:
-	@if [ ! -d "$(EXTERNAL_DIR)/SDL3_mixer/build" ]; then \
-		echo "⚠️  SDL3_mixer n'est pas compilé. Compilation en cours..."; \
+	@if [ ! -d "$(EXT_DIR)/SDL3_mixer/build" ]; then \
+		echo "⚠️  SDL3_mixer n'est pas compilé dans $(EXT_DIR). Compilation..."; \
 		$(MAKE) compile-sdl3-mixer; \
 	fi
 
 compile-sdl3-mixer:
 	@echo "🔧 Compilation de SDL3_mixer..."
-	@mkdir -p $(EXTERNAL_DIR)/SDL3_mixer/build
-	@cd $(EXTERNAL_DIR)/SDL3_mixer/build && \
+	@mkdir -p $(EXT_DIR)/SDL3_mixer/build
+	@cd $(EXT_DIR)/SDL3_mixer/build && \
 	cmake .. -DCMAKE_BUILD_TYPE=Release \
 	         -DSDL3MIXER_VENDORED=ON \
 	         -DSDL3MIXER_SAMPLES=OFF \
@@ -96,10 +99,10 @@ clean:
 	rm -rf $(OBJ_DIR) $(TARGET)
 
 clean-all: clean
-	@echo "🧹 Nettoyage complet (y compris librairies externes)..."
-	rm -rf $(EXTERNAL_DIR)/SDL3_ttf/build
-	rm -rf $(EXTERNAL_DIR)/SDL3_mixer/build
-	rm -rf $(EXTERNAL_DIR)/SDL3_mixer/install
+	@echo "🧹 Nettoyage complet (y compris librairies dans $(EXT_DIR))..."
+	rm -rf $(EXT_DIR)/SDL3_ttf/build
+	rm -rf $(EXT_DIR)/SDL3_mixer/build
+	rm -rf $(EXT_DIR)/SDL3_mixer/install
 
 run-ncurses: all
 	./$(TARGET) ncurses
