@@ -2,115 +2,83 @@
 #   Makefile - Space Invaders (MVC)
 # ==========================================
 
-# --- 1. Variables de Compilation ---
-
 CC = gcc
-
-# Nom du dossier des dépendances
 EXT_DIR = 3rdParty
+TARGET = space_invaders
 
-# Chemins d'inclusion (Headers)
-# On utilise $(EXT_DIR) pour plus de flexibilité
+# --- 1. Flags de Compilation ---
 CFLAGS = -std=c99 -Wall -Wextra -g -Iinclude \
          -I$(EXT_DIR)/SDL3/include \
          -I$(EXT_DIR)/SDL3_image/include \
          -I$(EXT_DIR)/SDL3_ttf/include \
          -I$(EXT_DIR)/SDL3_mixer/include
 
-# Détection des drapeaux pour SDL3 via pkg-config
-SDL_CFLAGS := $(shell pkg-config --cflags sdl3) 
-# Bibliothèques SDL (ordre important)
-SDL_LIBS   := $(shell pkg-config --libs sdl3) -lSDL3_ttf -lSDL3_image -lSDL3_mixer -lm
+# L'ordre des libs est crucial (les extensions AVANT le coeur SDL3)
+LDFLAGS = -lm -lncurses \
+          -L$(EXT_DIR)/SDL3_image/build -lSDL3_image \
+          -L$(EXT_DIR)/SDL3_ttf/build -lSDL3_ttf \
+          -L$(EXT_DIR)/SDL3_mixer/build -lSDL3_mixer \
+          -L$(EXT_DIR)/SDL3/build -lSDL3 \
+          -Wl,-rpath,$(abspath $(EXT_DIR)/SDL3_image/build) \
+          -Wl,-rpath,$(abspath $(EXT_DIR)/SDL3_ttf/build) \
+          -Wl,-rpath,$(abspath $(EXT_DIR)/SDL3_mixer/build) \
+          -Wl,-rpath,$(abspath $(EXT_DIR)/SDL3/build)
 
-# LDFLAGS : Mise à jour des chemins vers $(EXT_DIR)
-LDFLAGS = -lm -lncurses $(SDL_LIBS) \
-          -L$(EXT_DIR)/SDL3_ttf/build -Wl,-rpath,$(EXT_DIR)/SDL3_ttf/build \
-          -L$(EXT_DIR)/SDL3_mixer/build -Wl,-rpath,$(EXT_DIR)/SDL3_mixer/build
-
-# --- 2. Fichiers et Répertoires ---
-
+# --- 2. Fichiers ---
 SRC_DIR = src
 OBJ_DIR = build
-BIN_DIR = .
-
-TARGET = $(BIN_DIR)/space_invaders
-
 SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
-# --- 3. Règles de Construction (Targets) ---
+# --- 3. Règles de Construction ---
 
-all: dirs check-sdl3-ttf check-sdl3-mixer $(TARGET)
+all: dirs libs $(TARGET)
 
-# --- GESTION SDL3_TTF ---
-check-sdl3-ttf:
-	@if [ ! -d "$(EXT_DIR)/SDL3_ttf/build" ]; then \
-		echo "⚠️  SDL3_ttf n'est pas compilé dans $(EXT_DIR). Compilation..."; \
-		$(MAKE) compile-sdl3-ttf; \
-	fi
+# Cibles d'exécution rapide
+run-ncurses: all
+	@echo "🚀 Lancement en mode NCURSES..."
+	./$(TARGET) ncurses
+
+run-sdl: all
+	@echo "🚀 Lancement en mode SDL3..."
+	./$(TARGET) sdl
+
+# --- 4. Gestion des Dépendances ---
+
+libs:
+	@if [ ! -f "$(EXT_DIR)/SDL3/build/libSDL3.so" ]; then $(MAKE) compile-sdl3; fi
+	@if [ ! -f "$(EXT_DIR)/SDL3_image/build/libSDL3_image.so" ]; then $(MAKE) compile-sdl3-image; fi
+	@if [ ! -f "$(EXT_DIR)/SDL3_ttf/build/libSDL3_ttf.so" ]; then $(MAKE) compile-sdl3-ttf; fi
+	@if [ ! -f "$(EXT_DIR)/SDL3_mixer/build/libSDL3_mixer.so" ]; then $(MAKE) compile-sdl3-mixer; fi
+
+compile-sdl3:
+	@echo "🔧 Compilation de SDL3 Core..."
+	@mkdir -p $(EXT_DIR)/SDL3/build
+	@cd $(EXT_DIR)/SDL3/build && cmake .. && cmake --build . --parallel
 
 compile-sdl3-ttf:
-	@echo "🔧 Compilation de SDL3_ttf..."
-	@mkdir -p $(EXT_DIR)/SDL3_ttf/build
-	@cd $(EXT_DIR)/SDL3_ttf/build && \
-	cmake .. -DCMAKE_BUILD_TYPE=Release \
-	         -DSDL3TTF_VENDORED=ON \
-	         -DSDL3TTF_SAMPLES=OFF && \
-	cmake --build . --parallel
-	@echo "✅ SDL3_ttf compilé avec succès !"
-
-# --- GESTION SDL3_MIXER ---
-check-sdl3-mixer:
-	@if [ ! -d "$(EXT_DIR)/SDL3_mixer/build" ]; then \
-		echo "⚠️  SDL3_mixer n'est pas compilé dans $(EXT_DIR). Compilation..."; \
-		$(MAKE) compile-sdl3-mixer; \
-	fi
+	@cd $(EXT_DIR)/SDL3_ttf/build && cmake .. -DSDL3_DIR=$(abspath $(EXT_DIR)/SDL3/build) -DSDL3TTF_VENDORED=ON && cmake --build . --parallel
 
 compile-sdl3-mixer:
-	@echo "🔧 Compilation de SDL3_mixer..."
-	@mkdir -p $(EXT_DIR)/SDL3_mixer/build
-	@cd $(EXT_DIR)/SDL3_mixer/build && \
-	cmake .. -DCMAKE_BUILD_TYPE=Release \
-	         -DSDL3MIXER_VENDORED=ON \
-	         -DSDL3MIXER_SAMPLES=OFF \
-	         -DSDL3MIXER_VORBIS_VORBISFILE=OFF \
-	         -DSDL3MIXER_VORBIS_STB=ON \
-	         -DSDL3MIXER_MP3_DRMP3=ON && \
-	cmake --build . --parallel
-	@echo "✅ SDL3_mixer compilé avec succès !"
+	@cd $(EXT_DIR)/SDL3_mixer/build && cmake .. -DSDL3_DIR=$(abspath $(EXT_DIR)/SDL3/build) -DSDL3MIXER_VENDORED=ON && cmake --build . --parallel
 
-# --- COMPILATION DU JEU ---
+compile-sdl3-image:
+	@cd $(EXT_DIR)/SDL3_image/build && cmake .. -DSDL3_DIR=$(abspath $(EXT_DIR)/SDL3/build) -DSDL3IMAGE_VENDORED=ON && cmake --build . --parallel
+
+# --- 5. Compilation du Projet ---
+
 $(TARGET): $(OBJS)
 	@echo "🔗 Édition des liens : $@"
 	$(CC) $(OBJS) -o $@ $(LDFLAGS)
-	@echo "✅ Compilation terminée avec succès !"
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@echo "🔨 Compilation de : $<"
+	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 dirs:
 	@mkdir -p $(OBJ_DIR)
 
-# --- 4. Commandes Utilitaires ---
-
 clean:
-	@echo "🧹 Nettoyage des fichiers de build..."
 	rm -rf $(OBJ_DIR) $(TARGET)
 
-clean-all: clean
-	@echo "🧹 Nettoyage complet (y compris librairies dans $(EXT_DIR))..."
-	rm -rf $(EXT_DIR)/SDL3_ttf/build
-	rm -rf $(EXT_DIR)/SDL3_mixer/build
-	rm -rf $(EXT_DIR)/SDL3_mixer/install
-
-run-ncurses: all
-	./$(TARGET) ncurses
-
-run-sdl: all
-	./$(TARGET) sdl
-
-doc:
-	doxygen Doxyfile
-
-.PHONY: all clean doc clean-all run-ncurses run-sdl dirs check-sdl3-ttf compile-sdl3-ttf check-sdl3-mixer compile-sdl3-mixer
+.PHONY: all clean libs run-ncurses run-sdl compile-sdl3 compile-sdl3-ttf compile-sdl3-mixer compile-sdl3-image
