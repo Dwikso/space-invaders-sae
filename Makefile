@@ -17,7 +17,6 @@ CFLAGS = -std=c99 -Wall -Wextra -g -Iinclude \
 LDFLAGS = -lm -lncurses $(SDL_LIBS) \
           -Lexternal/SDL3_ttf/build -Wl,-rpath,external/SDL3_ttf/build \
           -Lexternal/SDL3_mixer/build -Wl,-rpath,external/SDL3_mixer/build
-
 # Détection des drapeaux pour SDL3 via pkg-config
 SDL_CFLAGS := $(shell pkg-config --cflags sdl3) 
 
@@ -69,22 +68,12 @@ compile-sdl3-mixer:
 	@mkdir -p $(EXTERNAL_DIR)/SDL3_mixer/build
 	@cd $(EXTERNAL_DIR)/SDL3_mixer/build && \
 	cmake .. -DCMAKE_BUILD_TYPE=Release \
-	         -DCMAKE_INSTALL_PREFIX=../install \
 	         -DSDL3MIXER_VENDORED=ON \
 	         -DSDL3MIXER_SAMPLES=OFF \
-	         -DSDL3MIXER_FLAC_LIBFLAC=OFF \
-	         -DSDL3MIXER_FLAC_DRFLAC=ON \
-	         -DSDL3MIXER_MOD=OFF \
-	         -DSDL3MIXER_MIDI_FLUIDSYNTH=OFF \
-	         -DSDL3MIXER_MIDI_TIMIDITY=ON \
-	         -DSDL3MIXER_OPUS=OFF \
 	         -DSDL3MIXER_VORBIS_VORBISFILE=OFF \
 	         -DSDL3MIXER_VORBIS_STB=ON \
-	         -DSDL3MIXER_MP3_DRMP3=ON \
-	         -DSDL3MIXER_MP3_MPG123=OFF \
-	         -DSDL3MIXER_WAVPACK=OFF && \
-	cmake --build . --parallel && \
-	cmake --install .
+	         -DSDL3MIXER_MP3_DRMP3=ON && \
+	cmake --build . --parallel
 	@echo "✅ SDL3_mixer compilé avec succès !"
 
 # --- COMPILATION DU JEU ---
