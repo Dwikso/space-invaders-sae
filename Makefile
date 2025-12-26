@@ -52,12 +52,12 @@ check-sdl3-ttf:
 
 compile-sdl3-ttf:
 	@echo "🔧 Compilation de SDL3_ttf..."
-	@cd $(EXTERNAL_DIR)/SDL3_ttf && \
-	mkdir -p build && cd build && \
+	@mkdir -p $(EXTERNAL_DIR)/SDL3_ttf/build
+	@cd $(EXTERNAL_DIR)/SDL3_ttf/build && \
 	cmake .. -DCMAKE_BUILD_TYPE=Release \
 	         -DSDL3TTF_VENDORED=ON \
 	         -DSDL3TTF_SAMPLES=OFF && \
-	cmake --build .
+	cmake --build . --parallel
 	@echo "✅ SDL3_ttf compilé avec succès !"
 
 # --- GESTION SDL3_MIXER (NOUVEAU) ---
@@ -69,8 +69,8 @@ check-sdl3-mixer:
 
 compile-sdl3-mixer:
 	@echo "🔧 Compilation de SDL3_mixer..."
-	@cd $(EXTERNAL_DIR)/SDL3_mixer && \
-	mkdir -p build && cd build && \
+	@mkdir -p $(EXTERNAL_DIR)/SDL3_mixer/build
+	@cd $(EXTERNAL_DIR)/SDL3_mixer/build && \
 	cmake .. -DCMAKE_BUILD_TYPE=Release \
 	         -DSDL3MIXER_VENDORED=ON \
 	         -DSDL3MIXER_SAMPLES=OFF \
@@ -78,7 +78,7 @@ compile-sdl3-mixer:
 	         -DSDL3MIXER_MOD=OFF \
 	         -DSDL3MIXER_MIDI=OFF \
 	         -DSDL3MIXER_OPUS=OFF && \
-	cmake --build .
+	cmake --build . --parallel
 	@echo "✅ SDL3_mixer compilé avec succès !"
 # Note: J'ai désactivé FLAC/MOD/MIDI/OPUS pour simplifier la compilation et éviter des erreurs de dépendances.
 # WAV et MP3 marcheront.
