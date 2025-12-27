@@ -5,7 +5,6 @@
  * Ce module expose l'instance de l'interface utilisant la librairie Ncurses.
  * Il permet de jouer au jeu dans un terminal, sans fenêtre graphique.
  *
- * @date 2024
  */
 
 #ifndef VIEW_NCURSES_H

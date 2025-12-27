@@ -6,11 +6,35 @@
  * les constantes de gameplay, ainsi que les prototypes des fonctions de manipulation
  * du modèle (MVC).
  *
- * @date 2024
  */
 
 #ifndef MODEL_H
 #define MODEL_H
+
+#include "utils.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdio.h>
+#include <sys/stat.h> // Pour mkdir sur Linux/Mac
+#include <sys/types.h>
+#ifdef _WIN32
+#include <direct.h> // Pour _mkdir sur Windows
+#endif
+#include <dirent.h> // Pour lire le dossier
+#include <string.h> // Pour strlen, strcpy...
+// --- Constantes de Gameplay (Tes valeurs) ---
+#define PLAYER_SPEED 40.0f
+#define BULLET_SPEED 60.0f
+#define ENEMY_SPEED_BASE 10.0f
+#define ENEMY_DROP_HEIGHT 2.0f
+
+#define PLAYER_WIDTH 5
+#define PLAYER_HEIGHT 3
+#define ENEMY_WIDTH 4
+#define ENEMY_HEIGHT 3
+#define BULLET_WIDTH 1
+#define BULLET_HEIGHT 1
 
 #include "common.h"
 #include "controller.h" // Pour l'enum GameCommand

@@ -7,7 +7,6 @@
  * Cela permet au moteur de jeu d'utiliser n'importe quelle vue de manière interchangeable
  * (Pattern Strategy / Polymorphisme).
  *
- * @date 2024
  */
 
 #ifndef VIEW_INTERFACE_H

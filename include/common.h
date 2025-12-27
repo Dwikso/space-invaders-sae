@@ -6,8 +6,6 @@
  * entre le Modèle, la Vue et le Contrôleur. Il définit notamment
  * les dimensions abstraites du jeu (indépendantes de l'affichage)
  * et les contraintes de performance (FPS, limites mémoire).
- *
- * @date 2024
  */
 
 #ifndef COMMON_H

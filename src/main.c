@@ -5,7 +5,7 @@
 
 #include "model.h"
 #include "view_ncurses.h"
-#include "view_sdl.h" // Sera utilisé plus tard
+#include "view_sdl.h"
 #include "utils.h"
 
 int main(int argc, char *argv[])

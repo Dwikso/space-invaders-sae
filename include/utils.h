@@ -6,7 +6,6 @@
  * utilisées pour la gestion du temps (boucle de jeu) et la génération
  * de nombres aléatoires.
  *
- * @date 2024
  */
 
 #ifndef UTILS_H

@@ -6,7 +6,6 @@
  * et la logique du jeu. Le modèle ne connaît pas les touches "Z", "Q", "Flèche",
  * il ne connaît que des commandes abstraites comme CMD_MOVE_LEFT.
  *
- * @date 2024
  */
 
 #ifndef CONTROLLER_H
