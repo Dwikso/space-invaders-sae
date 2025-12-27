@@ -508,7 +508,7 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         {
             // Tir centré par rapport au joueur
             spawn_bullet(model,
-                         model->player.x + (PLAYER_WIDTH / 2.0f) - (BULLET_WIDTH / 2.0f),
+                         model->player.x + 1.5f,
                          model->player.y - 1,
                          -BULLET_SPEED,
                          ENTITY_BULLET_PLAYER);

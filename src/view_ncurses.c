@@ -138,7 +138,7 @@ static void ncurses_render(const GameModel *model)
     if (draw_game)
     {
         // HUD en haut
-        mvprintw(1, 2, "SC:%d | LVL:%d", model->score, model->level);
+        mvprintw(1, 2, "SC:%d | LVL:%d | Vie:%d", model->score, model->level, model->lives);
 
         // --- JOUEUR ---
         if (model->player.active)
@@ -203,7 +203,7 @@ static void ncurses_render(const GameModel *model)
         {
             if (model->bullets[i].active)
             {
-                int bx = (int)(model->bullets[i].x * scale_x) + 1;
+                int bx = (int)((model->bullets[i].x - 0.5f )* scale_x) + 1;
                 int by = (int)(model->bullets[i].y * scale_y) + 1;
 
                 if (bx > 0 && bx < cols - 1 && by > 0 && by < rows - 1)
@@ -236,7 +236,7 @@ static void ncurses_render(const GameModel *model)
             attroff(COLOR_PAIR(4));
 
             // Titre simple pour debug
-            if (model->state == STATE_PAUSED)
+            if (model->state == STATE_PAUSED) 
                 draw_centered_screen(-1, "PAUSE", 5);
             else if (model->state == STATE_GAME_OVER)
                 draw_centered_screen(-1, "GAME OVER", 2);
@@ -253,7 +253,6 @@ static GameCommand ncurses_get_input(GameModel *model)
     if (ch == KEY_RESIZE)
         return CMD_NONE; // Important pour ne pas crash au redimensionnement
 
-    // ... (Garder votre logique d'input existante ici, elle est parfaite) ...
     // Je remets juste le switch standard pour l'exemple
     switch (ch)
     {
