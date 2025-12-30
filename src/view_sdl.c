@@ -9,6 +9,9 @@
 // Instance unique du contexte
 static SDLContext ctx = {0};
 
+// Facteurs de mise à l'échelle (Model -> Pixels)
+static float SCALE_X = 1.0f;
+static float SCALE_Y = 1.0f;
 // ============================================================================
 // 2. FONCTIONS UTILITAIRES (HELPERS DE BASE)
 // ============================================================================
@@ -311,7 +314,6 @@ static bool sdl_init(void)
     ctx.font_title = TTF_OpenFont(FONT_PATH, 64);
 
     ctx.tex.player = load_texture("assets/aliens/space_player.bmp");
-    ctx.tex.bullet = load_texture("assets/Projectiles/missile_1.bmp");
     ctx.tex.heart_full = load_texture("assets/hearts/heart_full.bmp");
     ctx.tex.heart_empty = load_texture("assets/hearts/heart_empty.bmp");
     ctx.tex.bg_menu = load_texture("assets/backgrounds/bg_menu_1.bmp");

@@ -64,9 +64,6 @@ static const SDL_Color COL_GRAY = {150, 150, 150, 255};
 // UFO
 #define IMG_UFO "assets/aliens/space_UFO.bmp" // Vérifie le chemin exact !
 
-// Facteurs de mise à l'échelle (Model -> Pixels)
-static float SCALE_X = 1.0f;
-static float SCALE_Y = 1.0f;
 // ============================================================================
 //                          STRUCTURES DE DONNÉES
 // ============================================================================

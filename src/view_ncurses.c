@@ -2,17 +2,28 @@
 #include <ncurses.h>
 #include <string.h>
 #include <ctype.h>
-#include <math.h> // Nécessaire pour round() si besoin, ou cast int simple
+#include <math.h>
 
-// --- 1. SPRITES ---
+// ============================================================================
+// ASSETS VISUELS
+// ============================================================================
 static const char *SPRITE_PLAYER = "_^_";
+static const char *SPRITE_PLAYER_HIT = "*#*"; // Quand touché
 static const char *SPRITE_A1 = "/^\\";
 static const char *SPRITE_A2 = "/M\\";
 static const char *SPRITE_A3 = "/o\\";
+static const char *SPRITE_UFO = "<=O=>";
+
+// Caractères pour les boucliers selon les dégâts
+static const char SHIELD_FULL = '#';
+static const char SHIELD_MED = '+';
+static const char SHIELD_LOW = '.';
+
 static const char CHAR_BULLET = '|';
 
-// --- Fonctions internes ---
-
+// ============================================================================
+// INITIALISATION
+// ============================================================================
 static bool ncurses_init(void)
 {
     initscr();
@@ -25,13 +36,13 @@ static bool ncurses_init(void)
     if (has_colors())
     {
         start_color();
-        init_pair(1, COLOR_GREEN, COLOR_BLACK);
-        init_pair(2, COLOR_RED, COLOR_BLACK);
-        init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-        init_pair(4, COLOR_WHITE, COLOR_BLUE);
-        init_pair(5, COLOR_CYAN, COLOR_BLACK);
-        init_pair(6, COLOR_WHITE, COLOR_RED);
-        init_pair(7, COLOR_MAGENTA, COLOR_BLACK);
+        init_pair(1, COLOR_GREEN, COLOR_BLACK);   // Joueur
+        init_pair(2, COLOR_RED, COLOR_BLACK);     // UFO / Danger
+        init_pair(3, COLOR_YELLOW, COLOR_BLACK);  // Balles
+        init_pair(4, COLOR_BLUE, COLOR_BLACK);    // Cadres
+        init_pair(5, COLOR_CYAN, COLOR_BLACK);    // Bouclier
+        init_pair(6, COLOR_MAGENTA, COLOR_BLACK); // Ennemi
+        init_pair(7, COLOR_BLACK, COLOR_WHITE);   // Sélection
     }
     return true;
 }
@@ -41,239 +52,351 @@ static void ncurses_close(void)
     endwin();
 }
 
-// Fonction utilitaire pour centrer du texte (reste inchangée car elle est déjà responsive via getmaxyx)
-static void draw_centered_screen(int y_offset, const char *text, int pair_color)
+static void draw_centered(int y_offset, const char *text, int pair_color)
 {
-    int screen_h, screen_w;
-    getmaxyx(stdscr, screen_h, screen_w);
+    int h, w;
+    getmaxyx(stdscr, h, w);
     int len = strlen(text);
-    int x = (screen_w / 2) - (len / 2);
-    int y = (screen_h / 2) + y_offset;
-
-    // Sécurité pour ne pas écrire hors écran
+    int x = (w / 2) - (len / 2);
+    int y = (h / 2) + y_offset;
     if (x < 0)
         x = 0;
-    if (y < 0 || y >= screen_h)
-        return;
-
-    attron(COLOR_PAIR(pair_color));
-    mvprintw(y, x, "%s", text);
-    attroff(COLOR_PAIR(pair_color));
+    if (y >= 0 && y < h)
+    {
+        attron(COLOR_PAIR(pair_color));
+        mvprintw(y, x, "%s", text);
+        attroff(COLOR_PAIR(pair_color));
+    }
 }
 
+// ============================================================================
+// RENDU (RENDER)
+// ============================================================================
 static void ncurses_render(const GameModel *model)
 {
     erase();
-
-    // 1. RECUPERATION DE LA TAILLE DU TERMINAL
     int rows, cols;
     getmaxyx(stdscr, rows, cols);
 
-    // On accepte des terminaux plus petits, mais on garde une limite minimale absolue pour que ce soit jouable
-    if (rows < 10 || cols < 20)
+    if (rows < 20 || cols < 50)
     {
-        mvprintw(0, 0, "TROP PETIT");
+        mvprintw(0, 0, "FENETRE TROP PETITE !");
         refresh();
         return;
     }
 
-    // --- RESPONSIVE : CALCUL DES RATIOS ---
-    // On utilise (cols - 2) et (rows - 2) pour laisser la place au cadre
-    // On convertit en float pour la précision, puis en int pour l'affichage
     float scale_x = (float)(cols - 2) / (float)GAME_WIDTH;
     float scale_y = (float)(rows - 2) / (float)GAME_HEIGHT;
 
-    // DESSIN DU CADRE (S'adapte à la fenêtre entière)
     attron(COLOR_PAIR(4));
-    mvhline(0, 0, '#', cols);        // Haut
-    mvhline(rows - 1, 0, '#', cols); // Bas
-    mvvline(0, 0, '#', rows);        // Gauche
-    mvvline(0, cols - 1, '#', rows); // Droite
+    box(stdscr, 0, 0);
     attroff(COLOR_PAIR(4));
 
-    // =================================================
-    // MENUS (Centrés, pas besoin de scaling complexe)
-    // =================================================
-    // Note : J'ai gardé votre logique de menu, elle fonctionne bien car draw_centered_screen est dynamique.
-
+    // --- A. MENU PRINCIPAL ---
     if (model->state == STATE_MENU)
     {
-        draw_centered_screen(-6, "=== SPACE INVADERS ===", 5);
-        const char *options[] = {"JOUER", "TUTORIEL", "CHARGER", "QUITTER"};
-        for (int i = 0; i < 4; i++)
+        draw_centered(-6, "=== SPACE INVADERS ===", 1);
+
+        // On garde 4 options (Volume est l'index 3)
+        const char *options[] = {"JOUER", "TUTORIEL", "CHARGER", "VOLUME", "QUITTER"};
+
+        for (int i = 0; i < 5; i++)
         {
             char buf[64];
-            int color = (i == model->menu_selection) ? 1 : 3;
+            if (i == 3)
+                snprintf(buf, 64, "VOLUME (N/A)"); // On l'affiche mais marqué N/A
+            else
+                strcpy(buf, options[i]);
+
+            int col = (i == model->menu_selection) ? 7 : 0;
             if (i == model->menu_selection)
+                attron(COLOR_PAIR(7));
+            draw_centered(-2 + (i * 2), buf, col);
+            if (i == model->menu_selection)
+                attroff(COLOR_PAIR(7));
+        }
+        refresh();
+        return;
+    }
+
+    // --- B. CHARGEMENT / TUTO ---
+    if (model->state == STATE_LOAD_MENU)
+    {
+        draw_centered(-8, "=== CHARGER ===", 5);
+        if (model->save_file_count == 0)
+            draw_centered(0, "Aucune sauvegarde.", 2);
+        else
+        {
+            for (int i = 0; i < model->save_file_count; i++)
             {
-                attron(A_REVERSE);
-                snprintf(buf, sizeof(buf), "> %s <", options[i]);
+                int col = (i == model->menu_selection) ? 7 : 0;
+                if (i == model->menu_selection)
+                    attron(COLOR_PAIR(7));
+                draw_centered(-4 + i, model->save_files[i], col);
+                if (i == model->menu_selection)
+                    attroff(COLOR_PAIR(7));
+            }
+        }
+        refresh();
+        return;
+    }
+
+    if (model->state == STATE_TUTORIAL)
+    {
+        draw_centered(-8, "=== TUTORIEL ===", 6);
+        int cx = cols / 2, cy = rows / 2;
+        attron(COLOR_PAIR(2));
+        mvprintw(cy - 4, cx - 15, "%s : UFO (+100pts / +1 Vie)", SPRITE_UFO);
+        attron(COLOR_PAIR(6));
+        mvprintw(cy - 2, cx - 15, "%s : ALIENS (10-30pts)", SPRITE_A1);
+        attron(COLOR_PAIR(5));
+        mvprintw(cy, cx - 15, "%c   : BOUCLIER (Destructible)", SHIELD_FULL);
+        draw_centered(4, "FLECHES: Bouger | ESPACE: Tirer", 4);
+        draw_centered(6, "[ ENTREE ] Retour", 7);
+        refresh();
+        return;
+    }
+
+    // --- C. JEU ---
+    // HUD
+    attron(A_BOLD);
+    mvprintw(1, 2, "SCORE: %d", model->score);
+    mvprintw(1, cols - 15, "VIES: %d", model->lives);
+    mvprintw(1, cols / 2 - 4, "LVL: %d", model->level);
+    attroff(A_BOLD);
+
+    // 1. JOUEUR (AVEC EFFET EXPLOSION)
+    if (model->player.active)
+    {
+        int px = (int)(model->player.x * scale_x) + 1;
+        int py = (int)(model->player.y * scale_y) + 1;
+        if (px < cols - 3 && py < rows - 1)
+        {
+            // Si le joueur vient d'être touché (hit_timer > 0), il clignote en ROUGE
+            if (model->hit_timer > 0)
+            {
+                // Clignotement rapide
+                if ((int)(model->hit_timer * 5) % 2 == 0)
+                {
+                    attron(COLOR_PAIR(2)); // Rouge
+                    mvprintw(py, px, "%s", SPRITE_PLAYER_HIT);
+                    attroff(COLOR_PAIR(2));
+                }
             }
             else
             {
-                snprintf(buf, sizeof(buf), "  %s  ", options[i]);
+                // Normal
+                attron(COLOR_PAIR(1));
+                mvprintw(py, px, "%s", SPRITE_PLAYER);
+                attroff(COLOR_PAIR(1));
             }
-            draw_centered_screen(-2 + (i * 2), buf, color);
+        }
+    }
+
+    // 2. ENNEMIS
+    for (int i = 0; i < MAX_ENEMIES; i++)
+    {
+        const Entity *e = &model->enemies[i];
+        if (e->active)
+        {
+            int ex = (int)(e->x * scale_x) + 1;
+            int ey = (int)(e->y * scale_y) + 1;
+            int c = 2;
+            const char *s = SPRITE_A3;
+            if (e->type == ENTITY_ENEMY_TYPE_3)
+            {
+                c = 6;
+                s = SPRITE_A1;
+            }
+            else if (e->type == ENTITY_ENEMY_TYPE_2)
+            {
+                c = 5;
+                s = SPRITE_A2;
+            }
+
+            if (ex > 0 && ex < cols - 3 && ey > 0 && ey < rows - 1)
+            {
+                attron(COLOR_PAIR(c));
+                mvprintw(ey, ex, "%s", (e->exploding ? "*" : s));
+                attroff(COLOR_PAIR(c));
+            }
+        }
+    }
+
+    // 3. UFO
+    if (model->ufo.active)
+    {
+        int ux = (int)(model->ufo.x * scale_x) + 1;
+        int uy = (int)(model->ufo.y * scale_y) + 1;
+        if (ux > -5 && ux < cols)
+        {
+            attron(COLOR_PAIR(2) | A_BOLD);
+            mvprintw(uy, (ux < 1 ? 1 : ux), "%s", (model->ufo.exploding ? "BOOM" : SPRITE_UFO));
+            attroff(COLOR_PAIR(2) | A_BOLD);
+        }
+    }
+
+    // 4. BOUCLIERS (AVEC DÉGÂTS PROGRESSIFS)
+    attron(COLOR_PAIR(5));
+    for (int i = 0; i < MAX_SHIELDS; i++)
+    {
+        if (model->shields[i].active)
+        {
+            int sx = (int)(model->shields[i].x * scale_x) + 1;
+            int sy = (int)(model->shields[i].y * scale_y) + 1;
+            int sw = (int)(model->shields[i].width * scale_x);
+            if (sw < 1)
+                sw = 1;
+            int sh = (int)(model->shields[i].height * scale_y);
+            if (sh < 1)
+                sh = 1;
+
+            // Choix du caractère selon la vie (Health max = 10)
+            char c = SHIELD_FULL;
+            if (model->shields[i].health <= 3)
+                c = SHIELD_LOW; // Très abimé (.)
+            else if (model->shields[i].health <= 6)
+                c = SHIELD_MED; // Abimé (+)
+
+            for (int y = 0; y < sh; y++)
+                for (int x = 0; x < sw; x++)
+                    if (sx + x < cols - 1 && sy + y < rows - 1)
+                        mvaddch(sy + y, sx + x, c);
+        }
+    }
+    attroff(COLOR_PAIR(5));
+
+    // 5. BALLES
+    attron(COLOR_PAIR(3));
+    for (int i = 0; i < MAX_BULLETS; i++)
+    {
+        if (model->bullets[i].active)
+        {
+            int bx = (int)(model->bullets[i].x * scale_x) + 1;
+            int by = (int)(model->bullets[i].y * scale_y) + 1;
+            if (bx > 0 && bx < cols - 1 && by > 0 && by < rows - 1)
+                mvaddch(by, bx, CHAR_BULLET);
+        }
+    }
+    attroff(COLOR_PAIR(3));
+
+    // --- MENUS POPUP ---
+
+    // PAUSE
+    if (model->state == STATE_PAUSED)
+    {
+        draw_centered(-4, "=== PAUSE ===", 7);
+        const char *o[] = {"REPRENDRE", "VOLUME (N/A)", "SAUVEGARDER", "QUITTER"};
+        for (int i = 0; i < 4; i++)
+        {
+            int c = (i == model->menu_selection) ? 7 : 0;
             if (i == model->menu_selection)
-                attroff(A_REVERSE);
+                attron(COLOR_PAIR(7));
+            draw_centered(-1 + i, o[i], c);
+            if (i == model->menu_selection)
+                attroff(COLOR_PAIR(7));
         }
     }
-    // ... (Je passe les autres menus comme TUTORIAL/SAVE/LOAD car ils utilisent draw_centered_screen qui est OK) ...
-    else if (model->state == STATE_TUTORIAL)
+    // GAME OVER (Correction de l'ordre)
+    else if (model->state == STATE_GAME_OVER)
     {
-        draw_centered_screen(-5, "TUTORIEL (Voir Readme)", 5);
-        draw_centered_screen(0, "Appuyez sur Entree...", 4);
+        draw_centered(-3, "!!! GAME OVER !!!", 2);
+
+        char sc[32];
+        snprintf(sc, 32, "SCORE FINAL: %d", model->score);
+        draw_centered(-1, sc, 1);
+
+        // Correspond aux options dans model.c (0=Save, 1=Replay, 2=Quit)
+        const char *o[] = {"SAUVEGARDER SCORE", "REJOUER", "QUITTER"};
+        for (int i = 0; i < 3; i++)
+        {
+            int c = (i == model->menu_selection) ? 7 : 0;
+            if (i == model->menu_selection)
+                attron(COLOR_PAIR(7));
+            draw_centered(2 + (i * 2), o[i], c);
+            if (i == model->menu_selection)
+                attroff(COLOR_PAIR(7));
+        }
     }
-    // Ajoutez ici vos blocs ELSE IF pour SAVE/LOAD comme dans votre code original
-    // Ils fonctionneront car ils utilisent draw_centered_screen.
-
-    // =================================================
-    // JEU (RESPONSIVE SCALING)
-    // =================================================
-
-    bool draw_game = (model->state == STATE_PLAYING || model->state == STATE_PAUSED ||
-                      model->state == STATE_GAME_OVER || model->state == STATE_CONFIRM_QUIT ||
-                      model->state == STATE_OVERWRITE_CONFIRM);
-
-    if (draw_game)
+    // SAUVEGARDE
+    else if (model->state == STATE_SAVE_INPUT)
     {
-        // HUD en haut
-        mvprintw(1, 2, "SC:%d | LVL:%d | Vie:%d", model->score, model->level, model->lives);
-
-        // --- JOUEUR ---
-        if (model->player.active)
-        {
-            // Conversion coordonnées Jeu -> Terminal
-            // Le "+1" sert à décaler après le cadre de gauche/haut
-            int screen_x = (int)(model->player.x * scale_x) + 1;
-            int screen_y = (int)(model->player.y * scale_y) + 1;
-
-            // Sécurité bornes
-            if (screen_x >= cols - 4)
-                screen_x = cols - 4;
-            if (screen_y >= rows - 2)
-                screen_y = rows - 2;
-
-            attron(COLOR_PAIR(1));
-            mvprintw(screen_y, screen_x, "%s", SPRITE_PLAYER);
-            attroff(COLOR_PAIR(1));
-        }
-
-        // --- ENNEMIS ---
-        for (int i = 0; i < MAX_ENEMIES; i++)
-        {
-            if (model->enemies[i].active)
-            {
-                int color = 2;
-                const char *sprite = SPRITE_A2;
-
-                if (i < 11)
-                {
-                    color = 7;
-                    sprite = SPRITE_A1;
-                }
-                else if (i < 33)
-                {
-                    color = 5;
-                    sprite = SPRITE_A2;
-                }
-                else
-                {
-                    color = 1;
-                    sprite = SPRITE_A3;
-                }
-
-                // --- SCALING RESPONSIVE ---
-                int ex = (int)(model->enemies[i].x * scale_x) + 1;
-                int ey = (int)(model->enemies[i].y * scale_y) + 1;
-
-                // On s'assure de ne pas dessiner sur le cadre
-                if (ex > 0 && ex < cols - 3 && ey > 0 && ey < rows - 1)
-                {
-                    attron(COLOR_PAIR(color));
-                    mvprintw(ey, ex, "%s", sprite);
-                    attroff(COLOR_PAIR(color));
-                }
-            }
-        }
-
-        // --- BALLES ---
-        attron(COLOR_PAIR(3));
-        for (int i = 0; i < MAX_BULLETS; i++)
-        {
-            if (model->bullets[i].active)
-            {
-                int bx = (int)((model->bullets[i].x - 0.5f )* scale_x) + 1;
-                int by = (int)(model->bullets[i].y * scale_y) + 1;
-
-                if (bx > 0 && bx < cols - 1 && by > 0 && by < rows - 1)
-                {
-                    mvaddch(by, bx, CHAR_BULLET);
-                }
-            }
-        }
-        attroff(COLOR_PAIR(3));
-
-        // --- POPUPS (Centrés via calcul relatif) ---
-        if (model->state != STATE_PLAYING)
-        {
-            // On dessine une boite au milieu, quelle que soit la taille
-            int box_w = (cols > 40) ? 40 : cols - 4; // Largeur max 40 ou adaptée
-            int box_h = 10;
-            int start_y = (rows - box_h) / 2;
-            int start_x = (cols - box_w) / 2;
-
-            // Effacer la zone
-            for (int k = 0; k < box_h; k++)
-                mvhline(start_y + k, start_x, ' ', box_w);
-
-            // Cadre Popup
-            attron(COLOR_PAIR(4));
-            mvhline(start_y, start_x, '-', box_w);
-            mvhline(start_y + box_h, start_x, '-', box_w);
-            mvvline(start_y, start_x, '|', box_h);
-            mvvline(start_y, start_x + box_w, '|', box_h);
-            attroff(COLOR_PAIR(4));
-
-            // Titre simple pour debug
-            if (model->state == STATE_PAUSED) 
-                draw_centered_screen(-1, "PAUSE", 5);
-            else if (model->state == STATE_GAME_OVER)
-                draw_centered_screen(-1, "GAME OVER", 2);
-            else
-                draw_centered_screen(-1, "CONFIRMATION", 5);
-        }
+        draw_centered(-2, "NOM DE SAUVEGARDE :", 5);
+        char buf[64];
+        snprintf(buf, 64, "[ %s_ ]", model->input_buffer);
+        draw_centered(0, buf, 7);
+        draw_centered(2, "(Lettres/Chiffres - ENTREE Valider)", 0);
+    }
+    else if (model->state == STATE_SAVE_SUCCESS)
+    {
+        draw_centered(0, "SAUVEGARDE REUSSIE !", 1);
+    }
+    else if (model->state == STATE_CONFIRM_QUIT || model->state == STATE_OVERWRITE_CONFIRM)
+    {
+        draw_centered(-2, "CONFIRMER ?", 2);
+        draw_centered(0, (model->menu_selection == 0 ? "> OUI <" : "  OUI  "), (model->menu_selection == 0 ? 7 : 0));
+        draw_centered(1, (model->menu_selection == 1 ? "> NON <" : "  NON  "), (model->menu_selection == 1 ? 7 : 0));
     }
     refresh();
 }
 
+// ============================================================================
+// GESTION INPUT
+// ============================================================================
 static GameCommand ncurses_get_input(GameModel *model)
 {
     int ch = getch();
     if (ch == KEY_RESIZE)
-        return CMD_NONE; // Important pour ne pas crash au redimensionnement
+        return CMD_NONE;
 
-    // Je remets juste le switch standard pour l'exemple
+    if (model->state == STATE_SAVE_INPUT)
+    {
+        if (ch == '\n' || ch == KEY_ENTER)
+            return CMD_RETURN;
+        if (ch == 27)
+            return CMD_PAUSE;
+        if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b')
+            return CMD_BACKSPACE;
+        if (isalnum(ch) || ch == '-' || ch == '_')
+        {
+            int len = strlen(model->input_buffer);
+            if (len < 19)
+            {
+                model->input_buffer[len] = (char)ch;
+                model->input_buffer[len + 1] = '\0';
+            }
+        }
+        return CMD_NONE;
+    }
+
     switch (ch)
     {
     case KEY_LEFT:
-        return CMD_LEFT; // Ou CMD_MOVE_LEFT selon l'état
+        return (model->state == STATE_PLAYING) ? CMD_MOVE_LEFT : CMD_LEFT;
+    case 'q':
+        return (model->state == STATE_PLAYING) ? CMD_MOVE_LEFT : CMD_LEFT;
     case KEY_RIGHT:
-        return CMD_RIGHT;
+        return (model->state == STATE_PLAYING) ? CMD_MOVE_RIGHT : CMD_RIGHT;
+    case 'd':
+        return (model->state == STATE_PLAYING) ? CMD_MOVE_RIGHT : CMD_RIGHT;
     case KEY_UP:
         return CMD_UP;
+    case 'z':
+        return CMD_UP;
     case KEY_DOWN:
+        return CMD_DOWN;
+    case 's':
         return CMD_DOWN;
     case ' ':
         return CMD_SHOOT;
     case '\n':
         return CMD_RETURN;
+    case KEY_ENTER:
+        return CMD_RETURN;
     case 'p':
         return CMD_PAUSE;
     case 27:
-        return CMD_PAUSE; // Echap
-    case 'q':
-        return CMD_EXIT;
+        return CMD_PAUSE;
     default:
         return CMD_NONE;
     }

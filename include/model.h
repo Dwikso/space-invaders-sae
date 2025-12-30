@@ -79,7 +79,8 @@ typedef enum
     ENTITY_BULLET_ENEMY,  ///< Projectile tiré par un ennemi
     ENTITY_ENEMY_TYPE_1,  ///< Ennemi rangée du bas (10 pts) - "Octopus"
     ENTITY_ENEMY_TYPE_2,  ///< Ennemi rangée du milieu (20 pts) - "Crab"
-    ENTITY_ENEMY_TYPE_3   ///< Ennemi rangée du haut (40 pts) - "Squid"
+    ENTITY_ENEMY_TYPE_3,  ///< Ennemi rangée du haut (40 pts) - "Squid"
+    ENTITY_UFO
 } EntityType;
 
 /**
@@ -143,6 +144,7 @@ typedef struct
     bool hasSpawnedThisLevel; ///< Empêche l'OVNI d'apparaître plusieurs fois par niveau
     bool exploding;           ///< En cours d'explosion
     float explode_timer;      ///< Durée de l'explosion
+    EntityType type;          ///< Type de l'entité (ENTITY_UFO)
 } Ufo;
 
 /**
