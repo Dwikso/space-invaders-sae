@@ -61,6 +61,27 @@ static bool save_file_exists(const char *filename)
     }
     return false;
 }
+// Trouve un nom unique: "nom.dat" -> "nom(1).dat" -> "nom(2).dat"
+static void generate_unique_filename(const char *base_name, char *out_buffer)
+{
+    int i = 1;
+    char candidate[128];
+
+    // Tant qu'on trouve un fichier qui existe, on incrémente le numéro
+    while (true)
+    {
+        // On formate : "Sauvegarde(1).dat"
+        snprintf(candidate, sizeof(candidate), "%s(%d).dat", base_name, i);
+
+        // Si ce fichier N'EXISTE PAS, c'est gagné !
+        if (!save_file_exists(candidate))
+        {
+            strcpy(out_buffer, candidate); // On renvoie ce nom
+            return;
+        }
+        i++; // Sinon on tente (2), (3)...
+    }
+}
 
 // ============================================================================
 //                          2. LOGIQUE ENNEMIS & UFO
@@ -436,30 +457,37 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     // ---------------------------------------------------------
     if (model->state == STATE_GAME_OVER)
     {
-        if (model->game_over_timer > 0.5f)
-            return; // Petit délai de sécurité
+        // NOTE : J'ai supprimé la vérification du timer (game_over_timer)
+        // pour être sûr que tes touches répondent immédiatement.
 
+        // Navigation (0, 1, 2)
         if (cmd == CMD_UP)
             model->menu_selection = (model->menu_selection - 1 < 0) ? 2 : model->menu_selection - 1;
+
         if (cmd == CMD_DOWN)
             model->menu_selection = (model->menu_selection + 1 > 2) ? 0 : model->menu_selection + 1;
 
+        // Validation
         if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
         {
             model->sounds.play_select_sound = true;
+
             if (model->menu_selection == 0)
-            { // Sauvegarder
+            {
+                // OPTION 1 : SAUVEGARDER
                 model_scan_saves(model);
                 model->state = STATE_SAVE_SELECT;
                 model->menu_selection = 0;
             }
             else if (model->menu_selection == 1)
-                reset_game(model); // Rejouer
+            {
+                // OPTION 2 : REJOUER
+                reset_game(model);
+            }
             else if (model->menu_selection == 2)
-            { // Quitter
-                model->previous_state = STATE_GAME_OVER;
-                model->state = STATE_CONFIRM_QUIT;
-                model->menu_selection = 1;
+            {
+                // OPTION 3 : QUITTER
+                exit(0);
             }
         }
         return;
@@ -553,27 +581,48 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     }
 
     // Étape C : Confirmation Écrasement
+    // ---------------------------------------------------------
+    // 9. CONFIRMATION ÉCRASEMENT (Améliorée)
+    // ---------------------------------------------------------
     if (model->state == STATE_OVERWRITE_CONFIRM)
     {
+        // Navigation Gauche/Droite entre les 2 options
         if (cmd == CMD_LEFT || cmd == CMD_RIGHT || cmd == CMD_UP || cmd == CMD_DOWN)
-            model->menu_selection = !model->menu_selection;
+        {
+            model->menu_selection = !model->menu_selection; // Bascule 0 <-> 1
+        }
 
-        if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
+        else if (cmd == CMD_RETURN || cmd == CMD_SHOOT)
         {
             model->sounds.play_select_sound = true;
-            if (model->menu_selection == 0)
-            { // OUI
-                char filename[64];
-                snprintf(filename, 64, "%s.dat", model->input_buffer); // On n'oublie pas le .dat !
-                model_save_named(model, filename);
 
+            if (model->menu_selection == 0)
+            {
+                // OPTION 0 : ÉCRASER (L'ancien comportement)
+                char filename[64];
+                snprintf(filename, 64, "%s.dat", model->input_buffer);
+
+                model_save_named(model, filename);
                 model->state = STATE_SAVE_SUCCESS;
                 model->save_success_timer = 2.0f;
             }
             else
-            { // NON
-                model->state = STATE_SAVE_INPUT;
+            {
+                // OPTION 1 : CRÉER UNE COPIE (1, 2, 3...)
+                char new_name[128];
+                generate_unique_filename(model->input_buffer, new_name);
+
+                // On sauvegarde avec le nouveau nom (ex: "Partie(1).dat")
+                model_save_named(model, new_name); // Note: new_name contient déjà le .dat
+
+                model->state = STATE_SAVE_SUCCESS;
+                model->save_success_timer = 2.0f;
             }
+        }
+        // Touche Echap pour annuler complètement
+        else if (cmd == CMD_PAUSE)
+        {
+            model->state = STATE_SAVE_INPUT;
         }
         return;
     }
@@ -871,10 +920,14 @@ void model_update(GameModel *model, double dt)
                 model->lives--;
                 model->hit_timer = 2.0f;
                 model->sounds.play_player_explosion = true;
+
                 if (model->lives <= 0)
                 {
                     model->state = STATE_GAME_OVER;
                     model->sounds.play_game_over = true;
+
+                    model->menu_selection = 0;
+                    model->game_over_timer = 0;
                 }
             }
         }

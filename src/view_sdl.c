@@ -584,17 +584,28 @@ static void sdl_render(const GameModel *model)
         }
         else
         {
-            draw_text_centered("ATTENTION !", WIN_HEIGHT / 2 + 20, COL_RED, ctx.font_title);
-            char m[128];
-            snprintf(m, 128, "Fichier '%s.dat' existe deja.", model->input_buffer);
-            draw_text_centered(m, WIN_HEIGHT / 2 + 100, COL_YELLOW, ctx.font);
-            const char *o[] = {"OUI", "NON"};
-            for (int i = 0; i < 2; i++)
-            {
-                char b[64];
-                snprintf(b, 64, (i == model->menu_selection) ? "> %s <" : "%s", o[i]);
-                draw_text_centered(b, WIN_HEIGHT / 2 + 210 + i * 50, (i == model->menu_selection) ? COL_WHITE : COL_GRAY, ctx.font);
-            }
+            // Fond semi-transparent noir pour faire ressortir le popup
+            SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
+            SDL_FRect overlay = {0, 0, WIN_WIDTH, WIN_HEIGHT};
+            SDL_RenderFillRect(ctx.renderer, &overlay);
+
+            // TITRE
+            draw_text_centered("CE FICHIER EXISTE DEJA !", WIN_HEIGHT / 2 - 100, (SDL_Color){255, 165, 0, 255}, ctx.font);
+
+            // Nom du fichier concerné
+            char buf[128];
+            snprintf(buf, sizeof(buf), "Fichier : '%s.dat'", model->input_buffer);
+            draw_text_centered(buf, WIN_HEIGHT / 2 - 50, COL_WHITE, ctx.font);
+
+            // OPTION 0 : ÉCRASER (Rouge = Danger)
+            SDL_Color col0 = (model->menu_selection == 0) ? (SDL_Color){255, 0, 0, 255} : (SDL_Color){128, 128, 128, 255};
+            const char *txt0 = (model->menu_selection == 0) ? "> ECRASER L'ANCIEN <" : "  ECRASER L'ANCIEN  ";
+            draw_text_centered(txt0, WIN_HEIGHT / 2 + 30, col0, ctx.font);
+
+            // OPTION 1 : CRÉER COPIE (Vert = Sûr)
+            SDL_Color col1 = (model->menu_selection == 1) ? (SDL_Color){0, 255, 0, 255} : (SDL_Color){128, 128, 128, 255};
+            const char *txt1 = (model->menu_selection == 1) ? "> CREER UNE COPIE (1..) <" : "  CREER UNE COPIE (1..)  ";
+            draw_text_centered(txt1, WIN_HEIGHT / 2 + 80, col1, ctx.font);
         }
     }
     else if (model->state == STATE_TUTORIAL)

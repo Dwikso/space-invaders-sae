@@ -318,6 +318,48 @@ static void ncurses_render(const GameModel *model)
                 attroff(COLOR_PAIR(7));
         }
     }
+    else if (model->state == STATE_SAVE_SELECT)
+    {
+        draw_centered(-8, "=== CHOISIR EMPLACEMENT ===", 5);
+
+        // OPTION 0 : TOUJOURS "NOUVELLE SAUVEGARDE"
+        int col_new = (model->menu_selection == 0) ? 7 : 1; // 1=Vert
+        if (model->menu_selection == 0)
+            attron(COLOR_PAIR(7));
+        draw_centered(-4, "[ + ]  NOUVELLE SAUVEGARDE", col_new);
+        if (model->menu_selection == 0)
+            attroff(COLOR_PAIR(7));
+
+        // OPTION 1+ : LISTE DES FICHIERS EXISTANTS
+        if (model->save_file_count == 0)
+        {
+            draw_centered(0, "(Aucun fichier existant)", 4);
+        }
+        else
+        {
+            for (int i = 0; i < model->save_file_count; i++)
+            {
+                // L'index du menu est décalé de 1 (car 0 est "Nouvelle")
+                // Donc le fichier i correspond à l'option i+1
+                int menu_index = i + 1;
+
+                char buf[128];
+                snprintf(buf, 128, "FICHIER : %s", model->save_files[i]);
+
+                int col = (model->menu_selection == menu_index) ? 7 : 0;
+                if (model->menu_selection == menu_index)
+                    attron(COLOR_PAIR(7));
+
+                // On affiche la liste un peu plus bas
+                draw_centered(-2 + (i * 1), buf, col);
+
+                if (model->menu_selection == menu_index)
+                    attroff(COLOR_PAIR(7));
+            }
+        }
+
+        draw_centered(rows / 2 - 2, "[ENTREE] Valider   [ECHAP] Retour", 4);
+    }
     // SAUVEGARDE
     else if (model->state == STATE_SAVE_INPUT)
     {
@@ -331,11 +373,31 @@ static void ncurses_render(const GameModel *model)
     {
         draw_centered(0, "SAUVEGARDE REUSSIE !", 1);
     }
-    else if (model->state == STATE_CONFIRM_QUIT || model->state == STATE_OVERWRITE_CONFIRM)
+    // CONFIRMATION QUITTER (Classique Oui/Non)
+    else if (model->state == STATE_CONFIRM_QUIT)
     {
-        draw_centered(-2, "CONFIRMER ?", 2);
+        draw_centered(-2, "VOULEZ-VOUS QUITTER ?", 2);
         draw_centered(0, (model->menu_selection == 0 ? "> OUI <" : "  OUI  "), (model->menu_selection == 0 ? 7 : 0));
         draw_centered(1, (model->menu_selection == 1 ? "> NON <" : "  NON  "), (model->menu_selection == 1 ? 7 : 0));
+    }
+
+    // CONFIRMATION ECRASER (Nouveau style)
+    else if (model->state == STATE_OVERWRITE_CONFIRM)
+    {
+        draw_centered(-4, "CE FICHIER EXISTE DEJA !", 3); // Jaune
+
+        // Affiche le nom actuel
+        char buf[64];
+        snprintf(buf, 64, "'%s.dat'", model->input_buffer);
+        draw_centered(-2, buf, 7);
+
+        // Option 0 : Ecraser
+        const char *opt0 = (model->menu_selection == 0) ? "> ECRASER <" : "  ECRASER  ";
+        // Option 1 : Nouveau (Automatique)
+        const char *opt1 = (model->menu_selection == 1) ? "> CREER COPIE (1..) <" : "  CREER COPIE (1..)  ";
+
+        draw_centered(1, opt0, (model->menu_selection == 0 ? 2 : 0)); // 2=Rouge pour danger
+        draw_centered(3, opt1, (model->menu_selection == 1 ? 7 : 0)); // 7=Standard
     }
     refresh();
 }
