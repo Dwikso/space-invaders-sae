@@ -21,8 +21,8 @@
 - [Commandes](#-commandes)
 - [Structure du projet](#-structure-du-projet)
 - [Système de sauvegarde](#-système-de-sauvegarde)
+- [Documentation](#-documentation)
 - [Dépannage](#-dépannage)
-- [Contribution](#-contribution)
 - [Licence](#-licence)
 
 ---
@@ -38,19 +38,19 @@
 
 ## 🎯 Description
 
-Space Invaders MVC est une réimplémentation fidèle du jeu d'arcade classique **Space Invaders** (1978), développée en C ISO C99 avec une architecture **Modèle-Vue-Contrôleur** stricte.
+Space Invaders MVC est une réimplémentation fidèle du jeu d'arcade classique **Space Invaders** (1978), développée en C avec une architecture **Modèle-Vue-Contrôleur** stricte.
 
 Le projet propose **deux modes d'affichage interchangeables** :
 
+- **SDL3** : Interface graphique moderne avec sprites, animations et effets sonores (par défaut)
 - **ncurses** : Interface texte ASCII jouable directement dans le terminal
-- **SDL3** : Interface graphique moderne avec sprites, animations et effets sonores
 
 ### Objectifs pédagogiques
 
 - Démonstration d'une architecture MVC propre en C
 - Séparation stricte entre logique métier et rendu graphique
-- Gestion mémoire sans malloc pendant la boucle de jeu (allocation statique)
 - Double implémentation d'interface via polymorphisme en C
+- Système de sauvegarde/chargement binaire
 
 ---
 
@@ -58,8 +58,8 @@ Le projet propose **deux modes d'affichage interchangeables** :
 
 ### Gameplay
 
-- ✅ **3 types d'ennemis** avec scores différents (10/20/40 points)
-- ✅ **OVNI mystère** apparaissant aléatoirement (60 points + vie bonus)
+- ✅ **3 types d'ennemis** avec scores différents (10/20/30 points)
+- ✅ **OVNI mystère** apparaissant aléatoirement (100 points + vie bonus)
 - ✅ **4 boucliers destructibles** avec 10 états de dégradation
 - ✅ **Système de vies** avec indicateur visuel (cœurs)
 - ✅ **Progression par niveaux** avec augmentation de difficulté
@@ -68,7 +68,7 @@ Le projet propose **deux modes d'affichage interchangeables** :
 
 ### Technique
 
-- 🎮 **Double interface** : ncurses (terminal) et SDL3 (graphique)
+- 🎮 **Double interface** : SDL3 (graphique) et ncurses (terminal)
 - 💾 **Système de sauvegarde** complet avec gestion de fichiers
 - 🎵 **Audio SDL_mixer** : bruitages, musiques, boucles
 - 🎨 **Sprites animés** : 4 frames pour projectiles, 2 pour ennemis
@@ -107,182 +107,105 @@ Le projet suit strictement le pattern **Modèle-Vue-Contrôleur** :
 #### **Modèle** (`src/model.c`)
 
 - État du jeu (score, vies, niveau)
-- Physique des entités (positions, vitesses, collisions)
-- Règles métier (game over, level up, spawning)
-- Système de sauvegarde/chargement
+- Physique des entités (positions, vitesses, collisions AABB)
+- Règles métier (game over, level up, spawning UFO/ennemis)
+- Système de sauvegarde/chargement binaire
 - **⚠️ Ne connaît PAS la vue** : aucune dépendance graphique
 
 #### **Vue** (`src/view_ncurses.c` / `src/view_sdl.c`)
 
 - Rendu à l'écran (sprites, textes, HUD)
 - Gestion audio (bruitages, musiques)
-- Capture des entrées clavier/souris
+- Capture des entrées clavier
 - Conversion coordonnées logiques → pixels/caractères
-- **⚠️ Ne modifie PAS le modèle** : lecture seule
+- **⚠️ Ne modifie PAS le modèle** : lecture seule (sauf flags audio)
 
 #### **Contrôleur** (`include/controller.h`)
 
 - Définition des **commandes abstraites** (`CMD_MOVE_LEFT`, `CMD_SHOOT`, etc.)
 - Interface entre périphériques bruts et logique métier
-- Permet de changer les touches sans modifier le modèle
 
 ---
 
 ## 📦 Prérequis
 
-### Versions recommandées
+### Dépendances système
 
-| Dépendance     | Version minimale | Version testée | Obligatoire    |
-| -------------- | ---------------- | -------------- | -------------- |
-| **gcc**        | 9.0+             | 13.2.0         | ✅             |
-| **make**       | 4.0+             | 4.4.1          | ✅             |
-| **cmake**      | 3.20+            | 3.28.0         | ✅ (SDL)       |
-| **ncurses**    | 6.0+             | 6.4            | ✅             |
-| **SDL3**       | 3.2.0+           | 3.2.0          | ❌ (optionnel) |
-| **SDL3_image** | 3.0+             | 3.0.0          | ❌ (SDL only)  |
-| **SDL3_ttf**   | 3.0+             | 3.0.0          | ❌ (SDL only)  |
-| **SDL3_mixer** | 3.0+             | 3.0.0          | ❌ (SDL only)  |
+```bash
+# Ubuntu/Debian
+sudo apt install build-essential cmake libncurses-dev
+```
 
-### Systèmes supportés
+### Bibliothèques incluses (dossier 3rdParty/)
 
-- ✅ **Linux** (Ubuntu, Fedora, Debian, Arch)
-- ✅ **macOS** (via Homebrew)
-- ⚠️ **Windows** Il faut être fou pour utiliser fou pour utiliser Windows
+Les bibliothèques SDL3 sont fournies avec le projet :
+- **SDL3** : Rendu graphique
+- **SDL3_image** : Chargement d'images BMP
+- **SDL3_mixer** : Gestion audio
+- **SDL3_ttf** : Rendu de polices TrueType
 
 ---
 
 ## 🔧 Installation
 
-### Ubuntu/Debian
+### 1. Clonage du dépôt
 
 ```bash
-# Dépendances de base + ncurses
-sudo apt update
-sudo apt install -y build-essential make cmake git \
-    libncurses-dev pkg-config
-
-# Dépendances SDL3 (pour mode graphique)
-sudo apt install -y \
-    libx11-dev libxext-dev libwayland-dev libxkbcommon-dev \
-    libasound2-dev libpulse-dev libudev-dev libdbus-1-dev \
-    libfreetype6-dev libharfbuzz-dev \
-    libpng-dev libjpeg-dev libwebp-dev libtiff-dev
+git clone <url-du-repo>
+cd space-invaders
 ```
 
-### Fedora/RHEL/Rocky
+### 2. Préparation des scripts
 
 ```bash
-# Dépendances de base + ncurses
-sudo dnf groupinstall -y "Development Tools"
-sudo dnf install -y cmake git ncurses-devel pkg-config
-
-# Dépendances SDL3 (pour mode graphique)
-sudo dnf install -y \
-    libX11-devel libXext-devel wayland-devel libxkbcommon-devel \
-    alsa-lib-devel pulseaudio-libs-devel systemd-devel dbus-devel \
-    freetype-devel harfbuzz-devel \
-    libpng-devel libjpeg-turbo-devel libwebp-devel libtiff-devel
-```
-
-### Arch Linux
-
-```bash
-sudo pacman -Sy --needed base-devel cmake git ncurses \
-    libx11 libxext wayland libxkbcommon \
-    alsa-lib libpulse systemd dbus \
-    freetype2 harfbuzz libpng libjpeg-turbo libwebp libtiff
-```
-
-### macOS
-
-```bash
-# Installation via Homebrew
-brew install gcc make cmake ncurses pkg-config \
-    sdl3 sdl3_image sdl3_ttf sdl3_mixer
+chmod +x build.sh clean.sh
 ```
 
 ---
 
 ## 🔨 Compilation
 
-### Clonage du dépôt
+### Option recommandée : Script automatique
 
 ```bash
-git clone https://github.com/ch/space-invaders-mvc.git
-cd space-invaders-mvc
+./build.sh
 ```
 
-### Option 1 : Makefile (recommandé)
+Ce script :
+1. Compile les bibliothèques SDL3 (si nécessaire)
+2. Compile le projet Space Invaders
+
+### Nettoyage complet
 
 ```bash
-# Compilation automatique (détecte et compile SDL3_ttf/mixer si nécessaire)
+./clean.sh
+```
+
+Supprime tous les fichiers compilés (bibliothèques + projet).
+
+### Recompilation rapide (après modification du code)
+
+```bash
 make
-
-# Nettoyage
-make clean
-
-# Nettoyage complet (inclut les bibliothèques externes)
-make clean-all
-```
-
-### Option 2 : Script build.sh (multi-distro)
-
-```bash
-# Rendre le script exécutable
-chmod +x build.sh
-
-# Installation des dépendances système (1ère fois uniquement)
-./build.sh --install-deps
-
-# Compilation
-./build.sh --build
-
-# Compilation + Exécution
-./build.sh --run
-```
-
-### Compilation manuelle (debug)
-
-```bash
-# Créer les dossiers
-mkdir -p build
-
-# Compiler les sources
-gcc -std=c99 -Wall -Wextra -g -Iinclude \
-    src/*.c \
-    -o build/space_invaders \
-    -lm -lncurses \
-    $(pkg-config --cflags --libs sdl3) \
-    -lSDL3_image -lSDL3_ttf -lSDL3_mixer
 ```
 
 ---
 
 ## 🎮 Lancement du jeu
 
-### Mode Terminal (ncurses)
+L'exécutable se trouve dans le dossier `build/` :
 
 ```bash
-# Via Makefile
-make run-ncurses
+# Mode SDL (graphique, par défaut)
+./space_invaders
 
-# Ou directement
-./space_invaders ncurses
+# Mode ncurses (terminal)
+./space_invaders --ncurses
 ```
 
-**⚠️ Taille minimale requise :** 80 colonnes × 24 lignes
+**💡 Astuce SDL :** Appuyez sur **F11** pour basculer en plein écran.
 
-### Mode Graphique (SDL3)
-
-```bash
-# Via Makefile
-make run-sdl
-
-# Ou directement
-./space_invaders sdl
-```
-
-**💡 Astuce :** Appuyez sur **F11** pour basculer en plein écran.
+**⚠️ Mode ncurses :** Taille minimale requise : 80 colonnes × 24 lignes
 
 ---
 
@@ -293,10 +216,9 @@ make run-sdl
 | Touche                  | Action                               |
 | ----------------------- | ------------------------------------ |
 | **↑ / ↓**               | Naviguer dans les menus              |
-| **← / →**               | Ajuster le volume / Changer d'option |
+| **← / →**               | Ajuster le volume                    |
 | **ESPACE** / **ENTRÉE** | Valider la sélection                 |
 | **P** / **ÉCHAP**       | Pause / Retour                       |
-| **Q**                   | Quitter (avec confirmation)          |
 | **F11**                 | Plein écran (SDL uniquement)         |
 
 ### En jeu
@@ -323,24 +245,25 @@ make run-sdl
 ## 📁 Structure du projet
 
 ```
-space-invaders-mvc/
+space-invaders/
 │
 ├── assets/                    # Ressources graphiques/audio
 │   ├── aliens/               # Sprites ennemis (A1/A2/A3, UFO)
 │   ├── backgrounds/          # Fonds d'écran (menu, jeu)
 │   ├── explosions/           # Animations d'explosion
-│   ├── fonts/                # Police TTF (LibertinusSerif)
+│   ├── fonts/                # Police TTF
 │   ├── hearts/               # Icônes de vie (full/empty)
 │   ├── missiles/             # Projectiles joueur (4 frames)
 │   ├── projectiles/          # Projectiles ennemis (4 frames)
 │   ├── shelter/              # Boucliers (10 états de dégâts)
+│   ├── preview/              # Captures d'écran pour le README
 │   └── audio/                # Sons (shoot, explosion, UFO, beats)
 │
-├── external/                 # Bibliothèques externes
-│   ├── SDL3/                # SDL3 principal (via pkg-config)
-│   ├── SDL3_image/          # Chargement BMP/PNG
-│   ├── SDL3_ttf/            # Rendu de texte
-│   └── SDL3_mixer/          # Gestion audio
+├── 3rdParty/                  # Bibliothèques externes (incluses)
+│   ├── SDL3/                 # SDL3 principal
+│   ├── SDL3_image/           # Chargement d'images
+│   ├── SDL3_ttf/             # Rendu de texte TrueType
+│   └── SDL3_mixer/           # Gestion audio
 │
 ├── include/                  # Headers (.h)
 │   ├── common.h             # Constantes globales (GAME_WIDTH, FPS...)
@@ -360,10 +283,15 @@ space-invaders-mvc/
 │
 ├── sauvegardes/             # Dossier des sauvegardes (.dat)
 ├── build/                   # Fichiers compilés (.o, exécutable)
+├── docs/                    # Documentation Doxygen générée
+│   ├── html/               # Documentation HTML
+│   └── latex/              # Documentation LaTeX
 │
 ├── Makefile                 # Script de compilation
-├── build.sh                 # Script multi-distributions
-├── Doxyfile                 # Configuration Doxygen (doc)
+├── build.sh                 # Script de build automatique
+├── clean.sh                 # Script de nettoyage
+├── Doxyfile                 # Configuration Doxygen
+├── INSTALL.txt              # Instructions d'installation détaillées
 └── README.md                # Ce fichier
 ```
 
@@ -380,9 +308,9 @@ Les sauvegardes sont stockées dans le dossier `sauvegardes/` au format binaire 
 - Score actuel
 - Nombre de vies
 - Niveau en cours
-- Position des entités (joueur, ennemis, projectiles)
-- État des boucliers
-- Timers (cooldowns, invulnérabilité)
+- Position et état des entités (joueur, ennemis, projectiles, UFO)
+- État des boucliers (tous les blocs)
+- Timers et cooldowns
 
 ### Utilisation
 
@@ -407,23 +335,33 @@ Les sauvegardes sont stockées dans le dossier `sauvegardes/` au format binaire 
 
 ---
 
-## 🐛 Dépannage
+## 📚 Documentation
 
-### Problème : `SDL3 non trouvé`
+La documentation du code est générée avec **Doxygen**.
 
-**Cause :** SDL3 n'est pas installé ou pkg-config ne le trouve pas.
-
-**Solution :**
+### Génération de la documentation
 
 ```bash
-# Vérifier la présence de SDL3
-pkg-config --modversion sdl3
-
-# Si absent, compiler depuis les sources (external/SDL3/)
-# Ou utiliser uniquement ncurses :
-make clean
-make run-ncurses
+doxygen Doxyfile
 ```
+
+### Consultation
+
+Ouvrez `docs/html/index.html` dans votre navigateur.
+
+---
+
+## 🐛 Dépannage
+
+### Problème : `SDL3 non trouvé` ou erreur de liaison
+
+**Solution :** Utilisez le script de build automatique :
+
+```bash
+./build.sh
+```
+
+Ce script compile automatiquement toutes les bibliothèques SDL3 depuis le dossier `3rdParty/`.
 
 ### Problème : `Terminal trop petit` (ncurses)
 
@@ -457,72 +395,28 @@ make 2>&1 | grep -i "audio\|mixer"
 
 **Cause :** Le Color Key n'est pas appliqué (SDL3).
 
-**Solution :** Vérifiez que vos BMP ont un fond **noir pur** (RGB 0,0,0). Le code applique automatiquement la transparence sur cette couleur.
+**Solution :** Les fichiers BMP doivent avoir un fond **noir pur** (RGB 0,0,0). Le code applique automatiquement la transparence sur cette couleur.
 
 ### Problème : `Erreur de segmentation`
-
-**Cause :** Accès mémoire invalide (dépassement de tableau, pointeur NULL).
 
 **Solution :**
 
 ```bash
-# Compiler en mode debug
-make clean
-gcc -g -O0 src/*.c -o space_invaders -lncurses -lm $(pkg-config --libs sdl3) -lSDL3_ttf -lSDL3_mixer
-
-# Exécuter avec Valgrind
-valgrind --leak-check=full ./space_invaders sdl
+# Compiler en mode debug et exécuter avec Valgrind
+valgrind --leak-check=full ./space_invaders
 ```
 
-### Problème : `Makefile: command not found`
-
-**Cause :** Make n'est pas installé.
+### Problème : `Make ou GCC non trouvé`
 
 **Solution :**
 
 ```bash
 # Ubuntu/Debian
-sudo apt install make
+sudo apt install build-essential cmake
 
 # Fedora
-sudo dnf install make
+sudo dnf groupinstall "Development Tools" && sudo dnf install cmake
 ```
-
----
-
-## 🤝 Contribution
-
-Les contributions sont les bienvenues ! Voici comment participer :
-
-### 1. Fork le projet
-
-```bash
-git clone https://github.com/VOTRE_USERNAME/space-invaders-mvc.git
-cd space-invaders-mvc
-git checkout -b feature/ma-nouvelle-fonctionnalite
-```
-
-### 2. Respecter la structure MVC
-
-- ❌ **Ne PAS** mélanger logique métier et rendu
-- ✅ **OUI** : Créer des fonctions dédiées dans le bon module
-- ✅ **OUI** : Documenter avec Doxygen (`/** @brief ... */`)
-
-### 3. Tester les deux interfaces
-
-```bash
-# Tester ncurses
-make run-ncurses
-
-# Tester SDL
-make run-sdl
-```
-
-### 4. Soumettre une Pull Request
-
-- Titre clair (ex: `[FIX] Correction collision boucliers`)
-- Description détaillée des changements
-- Captures d'écran si modifications visuelles
 
 ---
 
@@ -533,7 +427,7 @@ Ce projet est sous licence **MIT**. Voir le fichier [LICENSE](LICENSE) pour plus
 ```
 MIT License
 
-Copyright (c) 2024 [Chamseddine Adaadour & Quentin Pellosse]
+Copyright (c) 2024-2025 Chamseddine Adaadour & Quentin Pellosse
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -556,19 +450,19 @@ SOFTWARE.
 
 ---
 
-## 👤 Auteur
+## 👤 Auteurs
 
-**[Chamseddine Adaadour & Quentin Pellosse]**
+**Chamseddine Adaadour & Quentin Pellosse**
 
-- 🌐 GitHub: [@Dwikso](https://github.com/Dwikso) & [@chamse22ine](https://github.com/chamse22ine)
+- 🌐 GitHub : [@Dwikso](https://github.com/Dwikso) & [@chamse22ine](https://github.com/chamse22ine)
 
 ---
 
 ## 🎓 Remerciements
 
 - **Tomohiro Nishikado** - Créateur original de Space Invaders (1978)
-- **SDL Team** - Pour la bibliothèque SDL3
-- **Communauté ncurses** - Pour la gestion terminal
+- **SDL Team** - Bibliothèque SDL3
+- **Communauté ncurses** - Gestion terminal
 
 ---
 
