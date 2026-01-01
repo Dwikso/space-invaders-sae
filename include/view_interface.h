@@ -1,12 +1,13 @@
 /**
  * @file view_interface.h
- * @brief Définition de l'interface abstraite pour les Vues.
+ * @brief Définition de l'interface graphique abstraite (V-Table).
  *
- * Ce fichier définit un "contrat" (via une structure de pointeurs de fonctions)
- * que toutes les interfaces graphiques (SDL, Ncurses, etc.) doivent respecter.
- * Cela permet au moteur de jeu d'utiliser n'importe quelle vue de manière interchangeable
- * (Pattern Strategy / Polymorphisme).
+ * Ce fichier définit le "contrat" que toutes les Vues (SDL, Ncurses, OpenGL...)
+ * doivent respecter. Il utilise des pointeurs de fonctions pour simuler
+ * le polymorphisme et le pattern "Strategy" en C pur.
  *
+ * Grâce à cette structure, le moteur du jeu (main.c) ne sait pas quelle librairie
+ * est utilisée : il appelle simplement `view.render()` et la magie opère.
  */
 
 #ifndef VIEW_INTERFACE_H
@@ -16,38 +17,47 @@
 #include "controller.h"
 
 // ============================================================================
-//                          INTERFACE (VTABLE)
+//                          CONTRAT D'INTERFACE
 // ============================================================================
 
 /**
- * @brief Structure regroupant les méthodes virtuelles de la Vue.
- * Une implémentation concrète (ex: view_sdl) doit remplir ces pointeurs.
+ * @brief Structure regroupant les méthodes virtuelles (API) d'une Vue.
+ *
+ * Pour créer une nouvelle vue (ex: `view_vulkan.c`), il suffit de créer
+ * une instance de cette structure et de remplir ces 4 pointeurs avec
+ * les fonctions correspondantes.
  */
 typedef struct
 {
     /**
-     * @brief Initialise la librairie graphique (Fenêtre, Textures, Sons, etc.).
-     * @return true en cas de succès, false si une erreur critique survient.
+     * @brief Initialise le sous-système graphique et audio.
+     * Crée la fenêtre, charge les textures/sons, initialise les polices.
+     *
+     * @return true si tout s'est bien passé, false si une erreur critique (ex: pas de carte graphique) survient.
      */
     bool (*init)(void);
 
     /**
-     * @brief Ferme la fenêtre et libère toutes les ressources allouées (Textures, Mémoire).
-     * Doit être appelé avant de quitter le programme.
+     * @brief Nettoyeur. Ferme la fenêtre et libère la mémoire.
+     * Doit détruire les textures, fermer les flux audio et quitter la librairie proprement.
      */
     void (*close)(void);
 
     /**
-     * @brief Dessine l'état actuel du jeu à l'écran.
-     * Cette fonction est appelée à chaque frame (60 fois par seconde).
-     * @param model Pointeur constant vers le modèle (Lecture seule pour l'affichage).
+     * @brief La boucle de rendu. Dessine une frame complète.
+     * Cette fonction est appelée en boucle (ex: 60 fois par seconde).
+     * Elle doit effacer l'écran, dessiner tous les éléments du modèle, et afficher le résultat (flip).
+     *
+     * @param model Pointeur en lecture seule (const) vers l'état du jeu à dessiner.
      */
     void (*render)(const GameModel *model);
 
     /**
-     * @brief Récupère les entrées utilisateur (Clavier, Souris, Manette).
-     * @param model Pointeur vers le modèle (utile si l'input dépend de l'état, ex: saisie de texte).
-     * @return Une commande abstraite (GameCommand) à traiter par le contrôleur.
+     * @brief Capteur d'événements (Input).
+     * Transforme les appuis touches/boutons bruts (SDL_Event, getch) en commandes de jeu logiques.
+     *
+     * @param model Pointeur vers le modèle (nécessaire pour le contexte, ex: saisie de texte vs jeu).
+     * @return La commande abstraite (GameCommand) correspondant à l'action du joueur.
      */
     GameCommand (*get_input)(GameModel *model);
 
