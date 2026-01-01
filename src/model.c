@@ -311,11 +311,21 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 model->state = STATE_TUTORIAL;
             else if (model->menu_selection == 2)
             { // CHARGER
+
+                // EST-CE QUE TU AS BIEN CETTE LIGNE ?
                 model_scan_saves(model);
+
+                // Si tu ne l'as pas, save_file_count garde sa vieille valeur !
                 if (model->save_file_count > 0)
                 {
                     model->state = STATE_LOAD_MENU;
                     model->menu_selection = 0;
+                }
+                else
+                {
+                    // Optionnel : Tu peux aussi décider d'aller dans le menu même si c'est vide
+                    // pour voir le message "Pas de sauvegarde".
+                    model->state = STATE_LOAD_MENU;
                 }
             }
             else if (model->menu_selection == 4)

@@ -36,17 +36,18 @@ static bool ncurses_init(void)
     if (has_colors())
     {
         start_color();
-        init_pair(1, COLOR_GREEN, COLOR_BLACK);   // Joueur
-        init_pair(2, COLOR_RED, COLOR_BLACK);     // UFO / Danger
-        init_pair(3, COLOR_YELLOW, COLOR_BLACK);  // Balles
-        init_pair(4, COLOR_BLUE, COLOR_BLACK);    // Cadres
-        init_pair(5, COLOR_CYAN, COLOR_BLACK);    // Bouclier
-        init_pair(6, COLOR_MAGENTA, COLOR_BLACK); // Ennemi
-        init_pair(7, COLOR_BLACK, COLOR_WHITE);   // Sélection
+        use_default_colors();
+
+        init_pair(1, COLOR_GREEN, -1);          // Joueur
+        init_pair(2, COLOR_RED, -1);            // UFO / Danger
+        init_pair(3, COLOR_YELLOW, -1);         // Balles
+        init_pair(4, COLOR_BLUE, -1);           // Cadres
+        init_pair(5, COLOR_CYAN, -1);           // Bouclier
+        init_pair(6, COLOR_MAGENTA, -1);        // Ennemi
+        init_pair(7, COLOR_BLACK, COLOR_WHITE); // Sélection (Reste sur fond blanc pour lisibilité)
     }
     return true;
 }
-
 static void ncurses_close(void)
 {
     endwin();
@@ -124,7 +125,7 @@ static void ncurses_render(const GameModel *model)
     {
         draw_centered(-8, "=== CHARGER ===", 5);
         if (model->save_file_count == 0)
-            draw_centered(0, "Aucune sauvegarde.", 2);
+            draw_centered(0, "Aucune sauvegarde trouvé.", 2);
         else
         {
             for (int i = 0; i < model->save_file_count; i++)
@@ -143,16 +144,47 @@ static void ncurses_render(const GameModel *model)
 
     if (model->state == STATE_TUTORIAL)
     {
-        draw_centered(-8, "=== TUTORIEL ===", 6);
-        int cx = cols / 2, cy = rows / 2;
-        attron(COLOR_PAIR(2));
-        mvprintw(cy - 4, cx - 15, "%s : UFO (+100pts / +1 Vie)", SPRITE_UFO);
-        attron(COLOR_PAIR(6));
-        mvprintw(cy - 2, cx - 15, "%s : ALIENS (10-30pts)", SPRITE_A1);
-        attron(COLOR_PAIR(5));
-        mvprintw(cy, cx - 15, "%c   : BOUCLIER (Destructible)", SHIELD_FULL);
-        draw_centered(4, "FLECHES: Bouger | ESPACE: Tirer", 4);
-        draw_centered(6, "[ ENTREE ] Retour", 7);
+        draw_centered(-9, "=== TABLEAU DES POINTS ===", 6); // Titre Magenta
+
+        int cx = cols / 2;
+        int cy = rows / 2;
+
+        // 1. UFO (OVNI)
+        // Affiche : <==O==>   = 100 PTS + ???
+        attron(COLOR_PAIR(2)); // Rouge
+        mvprintw(cy - 5, cx - 12, "%s", SPRITE_UFO);
+        attroff(COLOR_PAIR(2));
+        attron(A_BOLD);
+        mvprintw(cy - 5, cx - 4, "= 100 PTS + ???");
+        attroff(A_BOLD);
+
+        // 2. ENNEMI TYPE 3 (Haut / Calamar)
+        // Affiche : /^^\      = 30 PTS
+        attron(COLOR_PAIR(6));                        // Magenta
+        mvprintw(cy - 3, cx - 12, " %s ", SPRITE_A1); // Espaces pour centrer le petit sprite
+        attroff(COLOR_PAIR(6));
+        mvprintw(cy - 3, cx - 4, "= 30 PTS");
+
+        // 3. ENNEMI TYPE 2 (Milieu / Crabe)
+        // Affiche : /MM\      = 20 PTS
+        attron(COLOR_PAIR(5)); // Cyan
+        mvprintw(cy - 1, cx - 12, " %s ", SPRITE_A2);
+        attroff(COLOR_PAIR(5));
+        mvprintw(cy - 1, cx - 4, "= 20 PTS");
+
+        // 4. ENNEMI TYPE 1 (Bas / Poulpe)
+        // Affiche : /oo\      = 10 PTS
+        attron(COLOR_PAIR(1)); // Vert
+        mvprintw(cy + 1, cx - 12, " %s ", SPRITE_A3);
+        attroff(COLOR_PAIR(1));
+        mvprintw(cy + 1, cx - 4, "= 10 PTS");
+
+        // Commandes (Bas de page)
+        draw_centered(5, "FLECHES : Deplacer", 7);
+        draw_centered(6, "ESPACE  : Tirer", 7);
+
+        draw_centered(9, "[ ENTREE POUR RETOUR ]", 4);
+
         refresh();
         return;
     }
@@ -343,8 +375,8 @@ static void ncurses_render(const GameModel *model)
                 // Donc le fichier i correspond à l'option i+1
                 int menu_index = i + 1;
 
-                char buf[128];
-                snprintf(buf, 128, "FICHIER : %s", model->save_files[i]);
+                char buf[512];
+                snprintf(buf, sizeof(buf), "FICHIER : %s", model->save_files[i]);
 
                 int col = (model->menu_selection == menu_index) ? 7 : 0;
                 if (model->menu_selection == menu_index)

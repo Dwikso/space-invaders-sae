@@ -566,7 +566,7 @@ static void sdl_render(const GameModel *model)
         {
             draw_text_centered("CHARGER UNE PARTIE", 100, COL_GREEN, ctx.font_title);
             if (model->save_file_count == 0)
-                draw_text_centered("AUCUN FICHIER", WIN_HEIGHT / 2, COL_RED, ctx.font);
+                draw_text_centered("AUCUNE SAUVEGARDE TROUVE", WIN_HEIGHT / 2, COL_RED, ctx.font);
             for (int i = 0; i < model->save_file_count; i++)
             {
                 char b[256];
@@ -621,16 +621,16 @@ static void sdl_render(const GameModel *model)
             SDL_Texture *t;
             const char *d;
             SDL_Color c;
-        } tuts[] = {{ctx.tex.enemies[0][0], "= 10 PTS", {0, 255, 255, 255}}, {ctx.tex.enemies[1][0], "= 20 PTS", {255, 165, 0, 255}}, {ctx.tex.enemies[2][0], "= 30 PTS", {255, 50, 50, 255}}, {ctx.tex.ufo, "= ???", {255, 0, 255, 255}}};
+        } tuts[] = {{ctx.tex.enemies[0][0], "= 10 PTS", {0, 255, 255, 255}}, {ctx.tex.enemies[1][0], "= 20 PTS", {255, 165, 0, 255}}, {ctx.tex.enemies[2][0], "= 30 PTS", {255, 50, 50, 255}}, {ctx.tex.ufo, "= 100 PTS + ???", {255, 0, 255, 255}}};
         for (int i = 0; i < 4; i++)
         {
             SDL_SetTextureColorMod(tuts[i].t, tuts[i].c.r, tuts[i].c.g, tuts[i].c.b);
-            SDL_FRect r = {WIN_WIDTH / 2 + 20, 320 + i * 60, 40, (i == 3) ? 20 : 40};
+            SDL_FRect r = {WIN_WIDTH / 2 - 80, 325 + i * 60, 40, (i == 3) ? 20 : 40};
             SDL_RenderTexture(ctx.renderer, tuts[i].t, NULL, &r);
             SDL_SetTextureColorMod(tuts[i].t, 255, 255, 255);
             char b[32];
             snprintf(b, 32, "%s", tuts[i].d);
-            draw_text(b, WIN_WIDTH / 2 + 80, 320 + i * 60, tuts[i].c);
+            draw_text(b, WIN_WIDTH / 2 - 20, 320 + i * 60, tuts[i].c);
         }
         draw_text_centered("(Appuyez sur Entree pour retour)", WIN_HEIGHT - 50, COL_GRAY, ctx.font);
     }
