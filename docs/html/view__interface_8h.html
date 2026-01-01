@@ -92,7 +92,7 @@ $(function(){initNavTree('view__interface_8h.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p>Définition de l'interface abstraite pour les Vues.  
+<p>Définition de l'interface graphique abstraite (V-Table).  
 <a href="#details">More...</a></p>
 <div class="textblock"><code>#include &quot;<a class="el" href="model_8h_source.html">model.h</a>&quot;</code><br />
 <code>#include &quot;<a class="el" href="controller_8h_source.html">controller.h</a>&quot;</code><br />
@@ -102,12 +102,12 @@ $(function(){initNavTree('view__interface_8h.html','',''); });
 <tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
 Data Structures</h2></td></tr>
 <tr class="memitem:ViewInterface" id="r_ViewInterface"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structViewInterface.html">ViewInterface</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Structure regroupant les méthodes virtuelles de la Vue. Une implémentation concrète (ex: view_sdl) doit remplir ces pointeurs.  <a href="structViewInterface.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Structure regroupant les méthodes virtuelles (API) d'une Vue.  <a href="structViewInterface.html#details">More...</a><br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Définition de l'interface abstraite pour les Vues. </p>
-<p>Ce fichier définit un "contrat" (via une structure de pointeurs de fonctions) que toutes les interfaces graphiques (SDL, Ncurses, etc.) doivent respecter. Cela permet au moteur de jeu d'utiliser n'importe quelle vue de manière interchangeable (Pattern Strategy / Polymorphisme).</p>
-<dl class="section date"><dt>Date</dt><dd>2024 </dd></dl>
+<div class="textblock"><p>Définition de l'interface graphique abstraite (V-Table). </p>
+<p>Ce fichier définit le "contrat" que toutes les Vues (SDL, Ncurses, OpenGL...) doivent respecter. Il utilise des pointeurs de fonctions pour simuler le polymorphisme et le pattern "Strategy" en C pur.</p>
+<p>Grâce à cette structure, le moteur du jeu (<a class="el" href="main_8c.html" title="Point d&#39;entrée principal (Main Entry Point) du jeu.">main.c</a>) ne sait pas quelle librairie est utilisée : il appelle simplement <span class="tt">view.render()</span> et la magie opère. </p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <div id="page-nav" class="page-nav-panel">

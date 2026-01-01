@@ -92,7 +92,7 @@ $(function(){initNavTree('structShield.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p>Représente un bunker/bouclier destructible.  
+<p>Entité Spéciale : Bouclier (Bunker). Objet statique destructible pixel par pixel (ou par niveau de dégradation).  
  <a href="#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="model_8h_source.html">model.h</a>&gt;</code></p>
@@ -101,23 +101,25 @@ $(function(){initNavTree('structShield.html','',''); });
 Data Fields</h2></td></tr>
 <tr class="memitem:aaf6f44d9a4fcf9f8e23e35b741b2db9b" id="r_aaf6f44d9a4fcf9f8e23e35b741b2db9b"><td class="memItemLeft" align="right" valign="top"><a id="aaf6f44d9a4fcf9f8e23e35b741b2db9b" name="aaf6f44d9a4fcf9f8e23e35b741b2db9b"></a>
 float&#160;</td><td class="memItemRight" valign="bottom"><b>x</b></td></tr>
+<tr class="memdesc:aaf6f44d9a4fcf9f8e23e35b741b2db9b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Position X du bouclier. <br /></td></tr>
 <tr class="memitem:a181ef496a1670d19c93c00676442a5ea" id="r_a181ef496a1670d19c93c00676442a5ea"><td class="memItemLeft" align="right" valign="top"><a id="a181ef496a1670d19c93c00676442a5ea" name="a181ef496a1670d19c93c00676442a5ea"></a>
 float&#160;</td><td class="memItemRight" valign="bottom"><b>y</b></td></tr>
-<tr class="memdesc:a181ef496a1670d19c93c00676442a5ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Position. <br /></td></tr>
+<tr class="memdesc:a181ef496a1670d19c93c00676442a5ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Position Y du bouclier. <br /></td></tr>
 <tr class="memitem:a349c80ad13a972c953ecbf0151ec11e4" id="r_a349c80ad13a972c953ecbf0151ec11e4"><td class="memItemLeft" align="right" valign="top"><a id="a349c80ad13a972c953ecbf0151ec11e4" name="a349c80ad13a972c953ecbf0151ec11e4"></a>
 float&#160;</td><td class="memItemRight" valign="bottom"><b>width</b></td></tr>
+<tr class="memdesc:a349c80ad13a972c953ecbf0151ec11e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Largeur du bouclier. <br /></td></tr>
 <tr class="memitem:a071118fe7fcd941924add28dfb5ade8a" id="r_a071118fe7fcd941924add28dfb5ade8a"><td class="memItemLeft" align="right" valign="top"><a id="a071118fe7fcd941924add28dfb5ade8a" name="a071118fe7fcd941924add28dfb5ade8a"></a>
 float&#160;</td><td class="memItemRight" valign="bottom"><b>height</b></td></tr>
-<tr class="memdesc:a071118fe7fcd941924add28dfb5ade8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dimensions. <br /></td></tr>
+<tr class="memdesc:a071118fe7fcd941924add28dfb5ade8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hauteur du bouclier. <br /></td></tr>
 <tr class="memitem:a68ec6d36312b290ec8d8d376e91bce0f" id="r_a68ec6d36312b290ec8d8d376e91bce0f"><td class="memItemLeft" align="right" valign="top"><a id="a68ec6d36312b290ec8d8d376e91bce0f" name="a68ec6d36312b290ec8d8d376e91bce0f"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>health</b></td></tr>
-<tr class="memdesc:a68ec6d36312b290ec8d8d376e91bce0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">État de santé : 10 (Intact) à 0 (Détruit) <br /></td></tr>
+<tr class="memdesc:a68ec6d36312b290ec8d8d376e91bce0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Points de vie (0 à 10). Détermine le sprite "abîmé". <br /></td></tr>
 <tr class="memitem:a95e171186adb40a72b52c0c8268b1706" id="r_a95e171186adb40a72b52c0c8268b1706"><td class="memItemLeft" align="right" valign="top"><a id="a95e171186adb40a72b52c0c8268b1706" name="a95e171186adb40a72b52c0c8268b1706"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>active</b></td></tr>
-<tr class="memdesc:a95e171186adb40a72b52c0c8268b1706"><td class="mdescLeft">&#160;</td><td class="mdescRight">Si false, le bouclier est entièrement détruit. <br /></td></tr>
+<tr class="memdesc:a95e171186adb40a72b52c0c8268b1706"><td class="mdescLeft">&#160;</td><td class="mdescRight">True tant que health &gt; 0. <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Représente un bunker/bouclier destructible. </p>
+<div class="textblock"><p>Entité Spéciale : Bouclier (Bunker). Objet statique destructible pixel par pixel (ou par niveau de dégradation). </p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>include/<a class="el" href="model_8h_source.html">model.h</a></li>
 </ul>

@@ -97,12 +97,17 @@ $(function(){initNavTree('view__ncurses_8h_source.html','',''); });
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#define VIEW_NCURSES_H</span></div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="preprocessor">#include &quot;<a class="code" href="view__interface_8h.html">view_interface.h</a>&quot;</span></div>
-<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span></div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">extern</span> <span class="keyword">const</span> <a class="code hl_struct" href="structViewInterface.html">ViewInterface</a> view_ncurses;</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span> </div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span><span class="preprocessor">#endif </span><span class="comment">// VIEW_NCURSES_H</span></div>
-<div class="ttc" id="astructViewInterface_html"><div class="ttname"><a href="structViewInterface.html">ViewInterface</a></div><div class="ttdoc">Structure regroupant les méthodes virtuelles de la Vue. Une implémentation concrète (ex: view_sdl) do...</div><div class="ttdef"><b>Definition</b> view_interface.h:28</div></div>
-<div class="ttc" id="aview__interface_8h_html"><div class="ttname"><a href="view__interface_8h.html">view_interface.h</a></div><div class="ttdoc">Définition de l&#39;interface abstraite pour les Vues.</div></div>
+<div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="comment">// ============================================================================</span></div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="comment">//                          INSTANCE GLOBALE</span></div>
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="comment">// ============================================================================</span></div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span></div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="keyword">extern</span> <span class="keyword">const</span> <a class="code hl_struct" href="structViewInterface.html">ViewInterface</a> <a class="code hl_variable" href="view__ncurses_8c.html#a67157fa8cc5a49d3e5498df8e6be5836">view_ncurses</a>;</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="preprocessor">#endif </span><span class="comment">// VIEW_NCURSES_H</span></div>
+<div class="ttc" id="astructViewInterface_html"><div class="ttname"><a href="structViewInterface.html">ViewInterface</a></div><div class="ttdoc">Structure regroupant les méthodes virtuelles (API) d&#39;une Vue.</div><div class="ttdef"><b>Definition</b> view_interface.h:31</div></div>
+<div class="ttc" id="aview__interface_8h_html"><div class="ttname"><a href="view__interface_8h.html">view_interface.h</a></div><div class="ttdoc">Définition de l&#39;interface graphique abstraite (V-Table).</div></div>
+<div class="ttc" id="aview__ncurses_8c_html_a67157fa8cc5a49d3e5498df8e6be5836"><div class="ttname"><a href="view__ncurses_8c.html#a67157fa8cc5a49d3e5498df8e6be5836">view_ncurses</a></div><div class="ttdeci">const ViewInterface view_ncurses</div><div class="ttdoc">Instance concrète de l&#39;interface View pour le mode Terminal.</div><div class="ttdef"><b>Definition</b> view_ncurses.c:543</div></div>
 </div><!-- fragment --></div><!-- contents -->
 </div><!-- doc-content -->
 </div><!-- container -->

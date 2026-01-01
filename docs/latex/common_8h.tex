@@ -2,55 +2,44 @@
 \hypertarget{common_8h}{}\label{common_8h}\index{include/common.h@{include/common.h}}
 
 
-Constantes globales et configuration générale du projet.  
+Configuration globale et constantes du jeu.  
 
 
 {\ttfamily \#include $<$stdbool.\+h$>$}\newline
 \doxysubsubsection*{Macros}
-\begin{Indent}\textbf{ Système de Coordonnées}\par
-{\em 
-\begin{DoxyItemize}
-\item Ces dimensions définissent la grille logique du jeu. Le rendu (SDL ou Ncurses) se charge ensuite d\textquotesingle{}étirer (scale) ces coordonnées pour qu\textquotesingle{}elles s\textquotesingle{}adaptent à la taille réelle de la fenêtre ou du terminal. 
-\end{DoxyItemize}}\begin{DoxyCompactItemize}
+\begin{Indent}\textbf{ Grille de Jeu}\par
+{\em Dimensions abstraites du terrain. Le rendu (SDL/\+Ncurses) se charge d\textquotesingle{}adapter ces coordonnées à la taille réelle de la fenêtre. }\begin{DoxyCompactItemize}
 \item 
-\#define \mbox{\hyperlink{common_8h_a693f306b88f7336281e4d1f07754579c}{GAME\+\_\+\+WIDTH}}~100
-\begin{DoxyCompactList}\small\item\em Largeur logique du terrain de jeu. Les entités évoluent entre x=0 et x=100. \end{DoxyCompactList}\item 
-\#define \mbox{\hyperlink{common_8h_addffa3e327bacbc3da87278442b2b507}{GAME\+\_\+\+HEIGHT}}~50
-\begin{DoxyCompactList}\small\item\em Hauteur logique du terrain de jeu. Les entités évoluent entre y=0 et y=50. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\Hypertarget{common_8h_a693f306b88f7336281e4d1f07754579c}\label{common_8h_a693f306b88f7336281e4d1f07754579c} 
+\#define {\bfseries GAME\+\_\+\+WIDTH}~100
+\begin{DoxyCompactList}\small\item\em Largeur logique du terrain (0 à 100). \end{DoxyCompactList}\item 
+\Hypertarget{common_8h_addffa3e327bacbc3da87278442b2b507}\label{common_8h_addffa3e327bacbc3da87278442b2b507} 
+\#define {\bfseries GAME\+\_\+\+HEIGHT}~50
+\begin{DoxyCompactList}\small\item\em Hauteur logique du terrain (0 à 50). \end{DoxyCompactList}\end{DoxyCompactItemize}
 \end{Indent}
-\begin{Indent}\textbf{ Allocation Statique}\par
-{\em 
-\begin{DoxyItemize}
-\item Ces constantes définissent la taille maximale des tableaux fixes. Cela permet d\textquotesingle{}éviter l\textquotesingle{}utilisation lente de {\ttfamily malloc} pendant la boucle de jeu. 
-\end{DoxyItemize}}\begin{DoxyCompactItemize}
+\begin{Indent}\textbf{ Tableaux Statiques}\par
+{\em Tailles maximales pour éviter les allocations dynamiques (malloc) durant la boucle de jeu principale. }\begin{DoxyCompactItemize}
 \item 
 \#define \mbox{\hyperlink{common_8h_a544651f3405cff79c40d898a8e54f507}{MAX\+\_\+\+ENEMIES}}~60
-\begin{DoxyCompactList}\small\item\em Nombre maximum d\textquotesingle{}ennemis affichables simultanément. (5 rangées de 11 ennemis = 55, arrondi à 60 par sécurité). \end{DoxyCompactList}\item 
+\begin{DoxyCompactList}\small\item\em Nombre maximum d\textquotesingle{}ennemis actifs simultanément. (Prévision large pour une grille standard d\textquotesingle{}envahisseurs). \end{DoxyCompactList}\item 
 \#define \mbox{\hyperlink{common_8h_a4331843c2698da5ccb18562eb1485681}{MAX\+\_\+\+BULLETS}}~100
-\begin{DoxyCompactList}\small\item\em Nombre maximum de projectiles simultanés. Inclut les tirs du joueur et ceux des ennemis. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Nombre maximum de projectiles à l\textquotesingle{}écran. Cumule les tirs du joueur et ceux des ennemis. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \end{Indent}
 \begin{Indent}\textbf{ Gestion du Temps}\par
-{\em 
-\begin{DoxyItemize}
-\item Paramètres pour réguler la vitesse d\textquotesingle{}exécution du jeu. 
-\end{DoxyItemize}}\begin{DoxyCompactItemize}
+{\em Constantes pour stabiliser la vitesse du jeu sur différents CPU. }\begin{DoxyCompactItemize}
 \item 
-\#define \mbox{\hyperlink{common_8h_acef24ae9a88131f27f1554acfd6ad976}{TARGET\+\_\+\+FPS}}~60
-\begin{DoxyCompactList}\small\item\em Fréquence d\textquotesingle{}images cible (Frames Per Second). Définit la fluidité du jeu. 60 FPS est le standard pour les jeux d\textquotesingle{}arcade. \end{DoxyCompactList}\item 
+\Hypertarget{common_8h_acef24ae9a88131f27f1554acfd6ad976}\label{common_8h_acef24ae9a88131f27f1554acfd6ad976} 
+\#define {\bfseries TARGET\+\_\+\+FPS}~60
+\begin{DoxyCompactList}\small\item\em Cible d\textquotesingle{}images par seconde (Standard Arcade). \end{DoxyCompactList}\item 
 \#define \mbox{\hyperlink{common_8h_a33fabd29c10aabcb416dfbf5c84d3e08}{FRAME\+\_\+\+DELAY}}~(1000 / \mbox{\hyperlink{common_8h_acef24ae9a88131f27f1554acfd6ad976}{TARGET\+\_\+\+FPS}})
-\begin{DoxyCompactList}\small\item\em Durée minimale d\textquotesingle{}une frame en millisecondes. Calculé \+: 1000ms / 60fps ≈ 16ms. Utilisé pour endormir le processeur (SDL\+\_\+\+Delay) si le calcul est trop rapide. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Durée minimale d\textquotesingle{}une frame en millisecondes. (1000ms / 60fps ≈ 16ms). Utilisé pour la pause (sleep) en fin de boucle. \end{DoxyCompactList}\end{DoxyCompactItemize}
 \end{Indent}
 
 
 \doxysubsection{Detailed Description}
-Constantes globales et configuration générale du projet. 
+Configuration globale et constantes du jeu. 
 
-Ce fichier contient les paramètres fondamentaux qui sont partagés entre le Modèle, la Vue et le Contrôleur. Il définit notamment les dimensions abstraites du jeu (indépendantes de l\textquotesingle{}affichage) et les contraintes de performance (FPS, limites mémoire).
-
-\begin{DoxyDate}{Date}
-2024 
-\end{DoxyDate}
-
+Ce fichier définit les dimensions logiques (indépendantes de l\textquotesingle{}écran), les limites de mémoire (tableaux statiques) et la gestion du temps (FPS). Il est inclus par le Modèle, la Vue et le Contrôleur. 
 
 \label{doc-define-members}
 \Hypertarget{common_8h_doc-define-members}
@@ -63,33 +52,7 @@ Ce fichier contient les paramètres fondamentaux qui sont partagés entre le Mod
 
 
 
-Durée minimale d\textquotesingle{}une frame en millisecondes. Calculé \+: 1000ms / 60fps ≈ 16ms. Utilisé pour endormir le processeur (SDL\+\_\+\+Delay) si le calcul est trop rapide. 
-
-
-\begin{DoxyItemize}
-\item 
-\end{DoxyItemize}\Hypertarget{common_8h_addffa3e327bacbc3da87278442b2b507}\index{common.h@{common.h}!GAME\_HEIGHT@{GAME\_HEIGHT}}
-\index{GAME\_HEIGHT@{GAME\_HEIGHT}!common.h@{common.h}}
-\doxysubsubsection{\texorpdfstring{GAME\_HEIGHT}{GAME\_HEIGHT}}
-{\footnotesize\ttfamily \label{common_8h_addffa3e327bacbc3da87278442b2b507} 
-\#define GAME\+\_\+\+HEIGHT~50}
-
-
-
-Hauteur logique du terrain de jeu. Les entités évoluent entre y=0 et y=50. 
-
-
-\begin{DoxyItemize}
-\item 
-\end{DoxyItemize}\Hypertarget{common_8h_a693f306b88f7336281e4d1f07754579c}\index{common.h@{common.h}!GAME\_WIDTH@{GAME\_WIDTH}}
-\index{GAME\_WIDTH@{GAME\_WIDTH}!common.h@{common.h}}
-\doxysubsubsection{\texorpdfstring{GAME\_WIDTH}{GAME\_WIDTH}}
-{\footnotesize\ttfamily \label{common_8h_a693f306b88f7336281e4d1f07754579c} 
-\#define GAME\+\_\+\+WIDTH~100}
-
-
-
-Largeur logique du terrain de jeu. Les entités évoluent entre x=0 et x=100. 
+Durée minimale d\textquotesingle{}une frame en millisecondes. (1000ms / 60fps ≈ 16ms). Utilisé pour la pause (sleep) en fin de boucle. 
 
 
 \begin{DoxyItemize}
@@ -102,7 +65,7 @@ Largeur logique du terrain de jeu. Les entités évoluent entre x=0 et x=100.
 
 
 
-Nombre maximum de projectiles simultanés. Inclut les tirs du joueur et ceux des ennemis. 
+Nombre maximum de projectiles à l\textquotesingle{}écran. Cumule les tirs du joueur et ceux des ennemis. 
 
 
 \begin{DoxyItemize}
@@ -115,20 +78,7 @@ Nombre maximum de projectiles simultanés. Inclut les tirs du joueur et ceux des
 
 
 
-Nombre maximum d\textquotesingle{}ennemis affichables simultanément. (5 rangées de 11 ennemis = 55, arrondi à 60 par sécurité). 
-
-
-\begin{DoxyItemize}
-\item 
-\end{DoxyItemize}\Hypertarget{common_8h_acef24ae9a88131f27f1554acfd6ad976}\index{common.h@{common.h}!TARGET\_FPS@{TARGET\_FPS}}
-\index{TARGET\_FPS@{TARGET\_FPS}!common.h@{common.h}}
-\doxysubsubsection{\texorpdfstring{TARGET\_FPS}{TARGET\_FPS}}
-{\footnotesize\ttfamily \label{common_8h_acef24ae9a88131f27f1554acfd6ad976} 
-\#define TARGET\+\_\+\+FPS~60}
-
-
-
-Fréquence d\textquotesingle{}images cible (Frames Per Second). Définit la fluidité du jeu. 60 FPS est le standard pour les jeux d\textquotesingle{}arcade. 
+Nombre maximum d\textquotesingle{}ennemis actifs simultanément. (Prévision large pour une grille standard d\textquotesingle{}envahisseurs). 
 
 
 \begin{DoxyItemize}

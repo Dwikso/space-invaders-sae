@@ -2,7 +2,7 @@
 \hypertarget{view__ncurses_8h}{}\label{view__ncurses_8h}\index{include/view\_ncurses.h@{include/view\_ncurses.h}}
 
 
-Implémentation de la Vue pour le terminal (Mode Texte/\+ASCII).  
+Implémentation de la Vue en mode Texte (Ncurses/\+ASCII).  
 
 
 {\ttfamily \#include "{}view\+\_\+interface.\+h"{}}\newline
@@ -10,18 +10,13 @@ Implémentation de la Vue pour le terminal (Mode Texte/\+ASCII).
 \begin{DoxyCompactItemize}
 \item 
 const \mbox{\hyperlink{structViewInterface}{View\+Interface}} \mbox{\hyperlink{view__ncurses_8h_a67157fa8cc5a49d3e5498df8e6be5836}{view\+\_\+ncurses}}
-\begin{DoxyCompactList}\small\item\em Instance concrète de l\textquotesingle{}interface View pour Ncurses. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\begin{DoxyCompactList}\small\item\em Instance concrète de l\textquotesingle{}interface View pour le mode Terminal. \end{DoxyCompactList}\end{DoxyCompactItemize}
 
 
 \doxysubsection{Detailed Description}
-Implémentation de la Vue pour le terminal (Mode Texte/\+ASCII). 
+Implémentation de la Vue en mode Texte (Ncurses/\+ASCII). 
 
-Ce module expose l\textquotesingle{}instance de l\textquotesingle{}interface utilisant la librairie Ncurses. Il permet de jouer au jeu dans un terminal, sans fenêtre graphique.
-
-\begin{DoxyDate}{Date}
-2024 
-\end{DoxyDate}
-
+Ce fichier expose l\textquotesingle{}implémentation "{}\+Low-\/\+Tech"{} du jeu. Il permet d\textquotesingle{}exécuter le jeu directement dans un terminal, en utilisant des caractères ASCII pour représenter les entités (ex\+: "{}\+A"{} pour un alien, "{}\texorpdfstring{$^\wedge$}{\string^}"{} pour le joueur). C\textquotesingle{}est une alternative légère à la version SDL. 
 
 \label{doc-var-members}
 \Hypertarget{view__ncurses_8h_doc-var-members}
@@ -34,6 +29,8 @@ const \mbox{\hyperlink{structViewInterface}{View\+Interface}} view\+\_\+ncurses\
 
 
 
-Instance concrète de l\textquotesingle{}interface View pour Ncurses. 
+Instance concrète de l\textquotesingle{}interface View pour le mode Terminal. 
 
-Cette variable globale est définie dans view\+\_\+ncurses.\+c. Elle contient les pointeurs vers les fonctions spécifiques à Ncurses (ncurses\+\_\+init, ncurses\+\_\+render, etc.). 
+Cette structure contient les pointeurs vers les fonctions réelles de Ncurses (ncurses\+\_\+init, ncurses\+\_\+render, etc.).
+
+Elle est utilisée par le {\ttfamily \doxylink{main_8c}{main.\+c}} lorsque l\textquotesingle{}argument "{}text"{} ou "{}ncurses"{} est passé au lancement du programme. 

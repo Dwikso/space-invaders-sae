@@ -37,8 +37,8 @@ static const SDL_Color COL_GRAY = {150, 150, 150, 255};
 
 /** @name Paramètres Fenêtre & HUD */
 ///@{
-#define WIN_WIDTH 1280
-#define WIN_HEIGHT 768
+#define WIN_WIDTH 1280      ///< Largeur de la fenêtre SDL en pixels.
+#define WIN_HEIGHT 768      ///< Hauteur de la fenêtre SDL en pixels.
 #define MAX_LIVES_DISPLAY 3 ///< Nombre max de cœurs affichés dans l'interface.
 #define HEART_UI_SIZE 45    ///< Taille (carrée) de l'icône cœur en pixels.
 #define HEART_SPACING 5     ///< Espace entre les cœurs.
@@ -46,39 +46,36 @@ static const SDL_Color COL_GRAY = {150, 150, 150, 255};
 
 /** @name Chemins des Assets : Entités */
 ///@{
-#define IMG_PLAYER "assets/aliens/space_player.bmp"
-#define IMG_UFO "assets/aliens/space_UFO.bmp"
+#define IMG_PLAYER "assets/aliens/space_player.bmp" ///< Sprite du vaisseau joueur.
+#define IMG_UFO "assets/aliens/space_UFO.bmp"       ///< Sprite de l'OVNI bonus.
 
-// Type 1 (En bas - Pieuvre)
-#define IMG_ENEMY1_A "assets/aliens/alien_A1.bmp"
-#define IMG_ENEMY1_B "assets/aliens/alien_A2.bmp"
+#define IMG_ENEMY1_A "assets/aliens/alien_A1.bmp" ///< Ennemi Type 1 - Frame A (Pieuvre).
+#define IMG_ENEMY1_B "assets/aliens/alien_A2.bmp" ///< Ennemi Type 1 - Frame B (Pieuvre).
 
-// Type 2 (Milieu - Crabe)
-#define IMG_ENEMY2_A "assets/aliens/alien_B1.bmp"
-#define IMG_ENEMY2_B "assets/aliens/alien_B2.bmp"
+#define IMG_ENEMY2_A "assets/aliens/alien_B1.bmp" ///< Ennemi Type 2 - Frame A (Crabe).
+#define IMG_ENEMY2_B "assets/aliens/alien_B2.bmp" ///< Ennemi Type 2 - Frame B (Crabe).
 
-// Type 3 (Haut - Calamar)
-#define IMG_ENEMY3_A "assets/aliens/alien_C1.bmp"
-#define IMG_ENEMY3_B "assets/aliens/alien_C2.bmp"
+#define IMG_ENEMY3_A "assets/aliens/alien_C1.bmp" ///< Ennemi Type 3 - Frame A (Calamar).
+#define IMG_ENEMY3_B "assets/aliens/alien_C2.bmp" ///< Ennemi Type 3 - Frame B (Calamar).
 ///@}
 
 /** @name Chemins des Assets : Environnement & UI */
 ///@{
-#define IMG_BG_MENU "assets/backgrounds/bg_menu_1.bmp"
-#define IMG_BG_MENU_1 "assets/backgrounds/bg_menu.bmp"
-#define IMG_BG_GAME "assets/backgrounds/background.bmp"
+#define IMG_BG_MENU "assets/backgrounds/bg_menu_1.bmp"  ///< Fond d'écran du menu principal (variante 1).
+#define IMG_BG_MENU_1 "assets/backgrounds/bg_menu.bmp"  ///< Fond d'écran du menu principal (variante 2).
+#define IMG_BG_GAME "assets/backgrounds/background.bmp" ///< Fond d'écran pendant le jeu.
 
-#define IMG_HEART_FULL "assets/hearts/heart_full.bmp"
-#define IMG_HEART_EMPTY "assets/hearts/heart_empty.bmp"
+#define IMG_HEART_FULL "assets/hearts/heart_full.bmp"   ///< Icône de cœur plein (vie restante).
+#define IMG_HEART_EMPTY "assets/hearts/heart_empty.bmp" ///< Icône de cœur vide (vie perdue).
 
-#define FONT_PATH "assets/fonts/LibertinusSerifDisplay-Regular.ttf"
-#define FONT_SIZE 38
+#define FONT_PATH "assets/fonts/LibertinusSerifDisplay-Regular.ttf" ///< Police TrueType utilisée.
+#define FONT_SIZE 38                                                ///< Taille de police par défaut.
 ///@}
 
 /** @name Chemins des Assets : Effets (FX) */
 ///@{
-#define IMG_EXPLOSION_A "assets/explosions/playerExplosionA.bmp"
-#define IMG_EXPLOSION_B "assets/explosions/playerExplosionB.bmp"
+#define IMG_EXPLOSION_A "assets/explosions/playerExplosionA.bmp" ///< Explosion Frame A.
+#define IMG_EXPLOSION_B "assets/explosions/playerExplosionB.bmp" ///< Explosion Frame B.
 ///@}
 
 // ============================================================================

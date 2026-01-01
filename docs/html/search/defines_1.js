@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['game_5fheight_0',['GAME_HEIGHT',['../common_8h.html#addffa3e327bacbc3da87278442b2b507',1,'common.h']]],
-  ['game_5fwidth_1',['GAME_WIDTH',['../common_8h.html#a693f306b88f7336281e4d1f07754579c',1,'common.h']]]
+  ['bullet_5fheight_0',['BULLET_HEIGHT',['../model_8h.html#ac91cd0386a836b604804b5dd09c0a65c',1,'model.h']]],
+  ['bullet_5fspeed_1',['BULLET_SPEED',['../model_8h.html#a70b3e643b533b8f785b7912e69434161',1,'model.h']]],
+  ['bullet_5fwidth_2',['BULLET_WIDTH',['../model_8h.html#ad135231941b972722b6ef5f5bd0670d2',1,'model.h']]]
 ];

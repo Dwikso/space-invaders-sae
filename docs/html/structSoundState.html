@@ -92,7 +92,7 @@ $(function(){initNavTree('structSoundState.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p>Système de drapeaux (Flags) pour le moteur audio.  
+<p>Système de drapeaux (Flags) Audio. Pattern "Fire-and-Forget" : Le Modèle demande un son (true), la Vue le joue et reset (false).  
  <a href="#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="model_8h_source.html">model.h</a>&gt;</code></p>
@@ -101,37 +101,34 @@ $(function(){initNavTree('structSoundState.html','',''); });
 Data Fields</h2></td></tr>
 <tr class="memitem:a8c97c24166dba4ee02167bad2e68777f" id="r_a8c97c24166dba4ee02167bad2e68777f"><td class="memItemLeft" align="right" valign="top"><a id="a8c97c24166dba4ee02167bad2e68777f" name="a8c97c24166dba4ee02167bad2e68777f"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>play_shoot</b></td></tr>
-<tr class="memdesc:a8c97c24166dba4ee02167bad2e68777f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Son de tir. <br /></td></tr>
+<tr class="memdesc:a8c97c24166dba4ee02167bad2e68777f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Demande de bruit de tir. <br /></td></tr>
 <tr class="memitem:a0d971862ac745fd5729eb3dfe578a257" id="r_a0d971862ac745fd5729eb3dfe578a257"><td class="memItemLeft" align="right" valign="top"><a id="a0d971862ac745fd5729eb3dfe578a257" name="a0d971862ac745fd5729eb3dfe578a257"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>play_invader_killed</b></td></tr>
-<tr class="memdesc:a0d971862ac745fd5729eb3dfe578a257"><td class="mdescLeft">&#160;</td><td class="mdescRight">Son destruction ennemi. <br /></td></tr>
+<tr class="memdesc:a0d971862ac745fd5729eb3dfe578a257"><td class="mdescLeft">&#160;</td><td class="mdescRight">Demande de bruit de mort alien. <br /></td></tr>
 <tr class="memitem:a58aa520a4fef2e4f69a844920b78a82f" id="r_a58aa520a4fef2e4f69a844920b78a82f"><td class="memItemLeft" align="right" valign="top"><a id="a58aa520a4fef2e4f69a844920b78a82f" name="a58aa520a4fef2e4f69a844920b78a82f"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>play_player_explosion</b></td></tr>
-<tr class="memdesc:a58aa520a4fef2e4f69a844920b78a82f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Son mort du joueur. <br /></td></tr>
+<tr class="memdesc:a58aa520a4fef2e4f69a844920b78a82f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Demande de bruit de mort joueur. <br /></td></tr>
 <tr class="memitem:abe37c18ca6adef2fd2228635134d9eb4" id="r_abe37c18ca6adef2fd2228635134d9eb4"><td class="memItemLeft" align="right" valign="top"><a id="abe37c18ca6adef2fd2228635134d9eb4" name="abe37c18ca6adef2fd2228635134d9eb4"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>play_select_sound</b></td></tr>
-<tr class="memdesc:abe37c18ca6adef2fd2228635134d9eb4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Bruitage "Bip" de validation dans les menus. <br /></td></tr>
+<tr class="memdesc:abe37c18ca6adef2fd2228635134d9eb4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Demande de "Bip" menu. <br /></td></tr>
 <tr class="memitem:a8ad4c017e43124d447667a170ba73b38" id="r_a8ad4c017e43124d447667a170ba73b38"><td class="memItemLeft" align="right" valign="top"><a id="a8ad4c017e43124d447667a170ba73b38" name="a8ad4c017e43124d447667a170ba73b38"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>play_game_over</b></td></tr>
-<tr class="memdesc:a8ad4c017e43124d447667a170ba73b38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Jingle de Game Over. <br /></td></tr>
+<tr class="memdesc:a8ad4c017e43124d447667a170ba73b38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Demande de jingle défaite. <br /></td></tr>
 <tr class="memitem:a7c0ff26249298357566d6bda1c453c71" id="r_a7c0ff26249298357566d6bda1c453c71"><td class="memItemLeft" align="right" valign="top"><a id="a7c0ff26249298357566d6bda1c453c71" name="a7c0ff26249298357566d6bda1c453c71"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>play_level_up</b></td></tr>
-<tr class="memdesc:a7c0ff26249298357566d6bda1c453c71"><td class="mdescLeft">&#160;</td><td class="mdescRight">Jingle de changement de niveau. <br /></td></tr>
+<tr class="memdesc:a7c0ff26249298357566d6bda1c453c71"><td class="mdescLeft">&#160;</td><td class="mdescRight">Demande de jingle niveau suivant. <br /></td></tr>
 <tr class="memitem:ae0fcb32b0c13b6d20d18318834485beb" id="r_ae0fcb32b0c13b6d20d18318834485beb"><td class="memItemLeft" align="right" valign="top"><a id="ae0fcb32b0c13b6d20d18318834485beb" name="ae0fcb32b0c13b6d20d18318834485beb"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>play_beat</b></td></tr>
-<tr class="memdesc:ae0fcb32b0c13b6d20d18318834485beb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Trigger pour le rythme alien. <br /></td></tr>
+<tr class="memdesc:ae0fcb32b0c13b6d20d18318834485beb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Trigger pour le rythme "Cœur" des aliens qui accélère. <br /></td></tr>
 <tr class="memitem:a3801ca088b2ede9472019165fbb8bc44" id="r_a3801ca088b2ede9472019165fbb8bc44"><td class="memItemLeft" align="right" valign="top"><a id="a3801ca088b2ede9472019165fbb8bc44" name="a3801ca088b2ede9472019165fbb8bc44"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>beat_index</b></td></tr>
-<tr class="memdesc:a3801ca088b2ede9472019165fbb8bc44"><td class="mdescLeft">&#160;</td><td class="mdescRight">Index du son de rythme (0 à 3) <br /></td></tr>
+<tr class="memdesc:a3801ca088b2ede9472019165fbb8bc44"><td class="mdescLeft">&#160;</td><td class="mdescRight">Note actuelle du rythme (0, 1, 2, 3). <br /></td></tr>
 <tr class="memitem:ab0dae8c8ae0303f0f0480a0ffbcb7a81" id="r_ab0dae8c8ae0303f0f0480a0ffbcb7a81"><td class="memItemLeft" align="right" valign="top"><a id="ab0dae8c8ae0303f0f0480a0ffbcb7a81" name="ab0dae8c8ae0303f0f0480a0ffbcb7a81"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>ufo_loopING</b></td></tr>
-<tr class="memdesc:ab0dae8c8ae0303f0f0480a0ffbcb7a81"><td class="mdescLeft">&#160;</td><td class="mdescRight">État continu : L'UFO est-il actif ? <br /></td></tr>
+<tr class="memdesc:ab0dae8c8ae0303f0f0480a0ffbcb7a81"><td class="mdescLeft">&#160;</td><td class="mdescRight">État continu : L'OVNI est présent (Son moteur en boucle). <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Système de drapeaux (Flags) pour le moteur audio. </p>
-<ul>
-<li>Le Modèle lève ces drapeaux (true), la Vue les lit, joue le son, puis les remet à zéro (false). </li>
-</ul>
+<div class="textblock"><p>Système de drapeaux (Flags) Audio. Pattern "Fire-and-Forget" : Le Modèle demande un son (true), la Vue le joue et reset (false). </p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>include/<a class="el" href="model_8h_source.html">model.h</a></li>
 </ul>

@@ -1,18 +1,16 @@
 var searchData=
 [
-  ['close_0',['close',['../structViewInterface.html#adf0fcaa2fafda7ab6197f4eee1775bab',1,'ViewInterface']]],
-  ['cmd_5fbackspace_1',['CMD_BACKSPACE',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a9cdf8298bbac9d1964121e0791f0742d',1,'controller.h']]],
-  ['cmd_5fdown_2',['CMD_DOWN',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a3077a6750ccd3147500875d62961a6f1',1,'controller.h']]],
-  ['cmd_5fexit_3',['CMD_EXIT',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a423988140dabaa461f133924ca772294',1,'controller.h']]],
-  ['cmd_5fleft_4',['CMD_LEFT',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a6209b9b123c01914b557bb921f334f88',1,'controller.h']]],
-  ['cmd_5fmove_5fleft_5',['CMD_MOVE_LEFT',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a048a54c3f471758630a798c32e569a61',1,'controller.h']]],
-  ['cmd_5fmove_5fright_6',['CMD_MOVE_RIGHT',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a2c4169a621294eff31ae915846dbd65a',1,'controller.h']]],
-  ['cmd_5fnone_7',['CMD_NONE',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a93c1ce1fac89139d9f4df4b6db21b1cc',1,'controller.h']]],
-  ['cmd_5fpause_8',['CMD_PAUSE',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a22507047922c1ce8c921c8d193e67126',1,'controller.h']]],
-  ['cmd_5freturn_9',['CMD_RETURN',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a958f04212c5e4a3510a98dd4ddc9cacc',1,'controller.h']]],
-  ['cmd_5fright_10',['CMD_RIGHT',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280a9f69104487ae00ae3f63308c4cd7ce58',1,'controller.h']]],
-  ['cmd_5fshoot_11',['CMD_SHOOT',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280aa60785bae96972dd147296dc3b06e7d2',1,'controller.h']]],
-  ['cmd_5fup_12',['CMD_UP',['../controller_8h.html#abc5a0df439bf92177bc39309fe831280ac1e873d5b926f3b62f92a4679bcc6cef',1,'controller.h']]],
-  ['common_2eh_13',['common.h',['../common_8h.html',1,'']]],
-  ['controller_2eh_14',['controller.h',['../controller_8h.html',1,'']]]
+  ['beat_0',['beat',['../structGameAudio.html#a2991abbc0590ad7a82520ca964353f7b',1,'GameAudio']]],
+  ['beat_5findex_1',['beat_index',['../structSoundState.html#a3801ca088b2ede9472019165fbb8bc44',1,'SoundState']]],
+  ['bg_5fgame_2',['bg_game',['../structGameTextures.html#af3aac17e5aef83d5e1f7a91ff9d3eb7d',1,'GameTextures']]],
+  ['bg_5fmenu_3',['bg_menu',['../structGameTextures.html#ad4d9aaf8aa2b480ca3e498c34c73b014',1,'GameTextures']]],
+  ['bg_5fmenu_5f1_4',['bg_menu_1',['../structGameTextures.html#a5d573754b55ca6be1e832295b4553f95',1,'GameTextures']]],
+  ['bg_5fmusic_5fdata_5',['bg_music_data',['../structGameAudio.html#a9bdf21ab7d956edd7526b00b2a3e1cf0',1,'GameAudio']]],
+  ['bg_5fmusic_5ftrack_6',['bg_music_track',['../structGameAudio.html#aeac5f264a651824b7242302d68641cf2',1,'GameAudio']]],
+  ['blur_7',['blur',['../structGameTextures.html#a11b4fb01abe7df769088f7de2e000918',1,'GameTextures']]],
+  ['bullet_8',['bullet',['../structGameTextures.html#a5b01d0d4f8053cfb824e0fe68f32b4e5',1,'GameTextures']]],
+  ['bullet_5fheight_9',['BULLET_HEIGHT',['../model_8h.html#ac91cd0386a836b604804b5dd09c0a65c',1,'model.h']]],
+  ['bullet_5fspeed_10',['BULLET_SPEED',['../model_8h.html#a70b3e643b533b8f785b7912e69434161',1,'model.h']]],
+  ['bullet_5fwidth_11',['BULLET_WIDTH',['../model_8h.html#ad135231941b972722b6ef5f5bd0670d2',1,'model.h']]],
+  ['bullets_12',['bullets',['../structGameModel.html#a9dccad919d568b664f0a442658f74ff4',1,'GameModel']]]
 ];

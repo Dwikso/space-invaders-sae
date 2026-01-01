@@ -7,7 +7,9 @@
  * une précision à la nanoseconde, nécessaire pour une boucle de jeu fluide (60 FPS).
  */
 
-// Force l'activation des fonctionnalités POSIX 1993 (Requis pour clock_gettime)
+/** @def _POSIX_C_SOURCE
+ *  @brief Active les fonctionnalités POSIX 1993 (requis pour clock_gettime).
+ */
 #define _POSIX_C_SOURCE 199309L
 
 #include "utils.h"

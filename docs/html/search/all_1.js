@@ -1,5 +1,8 @@
 var searchData=
 [
-  ['beat_5findex_0',['beat_index',['../structSoundState.html#a3801ca088b2ede9472019165fbb8bc44',1,'SoundState']]],
-  ['bullets_1',['bullets',['../structGameModel.html#a9dccad919d568b664f0a442658f74ff4',1,'GameModel']]]
+  ['active_0',['active',['../structEntity.html#a939da33e8b67b1d2ee227930aa72da3b',1,'Entity::active'],['../structUfo.html#a265e186ac983346bc00acd7ef58d82d1',1,'Ufo::active'],['../structShield.html#a95e171186adb40a72b52c0c8268b1706',1,'Shield::active']]],
+  ['anim_5fframe_1',['anim_frame',['../structEntity.html#abdc6c0415219ce02c9361aac1551c0f5',1,'Entity']]],
+  ['anim_5ftimer_2',['anim_timer',['../structEntity.html#a7bfdb0dd4baf73e43bad9ee9eda8a11c',1,'Entity']]],
+  ['animation_5fframe_3',['animation_frame',['../structGameModel.html#aa83164445106db176fb6fcf6e3af6006',1,'GameModel']]],
+  ['animation_5ftimer_4',['animation_timer',['../structGameModel.html#a70a525ebf5581fb6f8bbb34d870a7327',1,'GameModel']]]
 ];

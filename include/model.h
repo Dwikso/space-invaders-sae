@@ -128,11 +128,14 @@ typedef enum
 typedef struct
 {
     // Physique
-    float x, y;        ///< Position (Coin haut-gauche, coords logiques).
-    int width, height; ///< Dimensions de la Hitbox.
-    float dx, dy;      ///< Vecteur vitesse (Direction * Vitesse).
-    bool active;       ///< Si false, l'entité est ignorée (morte/libre pour réutilisation).
-    EntityType type;   ///< Catégorie de l'entité.
+    float x;         ///< Position X (Coin haut-gauche, coords logiques).
+    float y;         ///< Position Y (Coin haut-gauche, coords logiques).
+    int width;       ///< Largeur de la Hitbox.
+    int height;      ///< Hauteur de la Hitbox.
+    float dx;        ///< Composante X du vecteur vitesse.
+    float dy;        ///< Composante Y du vecteur vitesse.
+    bool active;     ///< Si false, l'entité est ignorée (morte/libre pour réutilisation).
+    EntityType type; ///< Catégorie de l'entité.
 
     // Gameplay
     float shoot_timer; ///< Temps restant avant de pouvoir tirer à nouveau (Cooldown).
@@ -152,9 +155,11 @@ typedef struct
  */
 typedef struct
 {
-    float x, y;               ///< Position.
-    float width, height;      ///< Dimensions.
-    float dx;                 ///< Vitesse de déplacement unique.
+    float x;                  ///< Position X de l'OVNI.
+    float y;                  ///< Position Y de l'OVNI.
+    float width;              ///< Largeur de l'OVNI.
+    float height;             ///< Hauteur de l'OVNI.
+    float dx;                 ///< Vitesse de déplacement horizontale.
     bool active;              ///< Est-il visible à l'écran ?
     bool hasSpawnedThisLevel; ///< Sécurité pour limiter à 1 OVNI par niveau.
     bool exploding;           ///< En cours d'explosion.
@@ -168,10 +173,12 @@ typedef struct
  */
 typedef struct
 {
-    float x, y;          ///< Position fixe.
-    float width, height; ///< Dimensions.
-    int health;          ///< Points de vie (0 à 10). Détermine le sprite "abîmé".
-    bool active;         ///< True tant que health > 0.
+    float x;      ///< Position X du bouclier.
+    float y;      ///< Position Y du bouclier.
+    float width;  ///< Largeur du bouclier.
+    float height; ///< Hauteur du bouclier.
+    int health;   ///< Points de vie (0 à 10). Détermine le sprite "abîmé".
+    bool active;  ///< True tant que health > 0.
 } Shield;
 
 /**
@@ -263,22 +270,17 @@ GameModel *model_init(void);
 
 /**
  * @brief Libère la mémoire (Destructeur).
- * @param model Le modèle à détruire.
  */
 void model_free(GameModel *model);
 
 /**
  * @brief Met à jour la logique du jeu (Physics & Logic).
  * Appelé à chaque frame.
- * @param model Le modèle à mettre à jour.
- * @param dt Delta Time (temps écoulé depuis la dernière frame en secondes).
  */
 void model_update(GameModel *model, double dt);
 
 /**
  * @brief Traite une commande abstraite (Input).
- * @param model Le modèle cible.
- * @param cmd La commande (CMD_SHOOT, CMD_LEFT, etc.).
  */
 void model_handle_input(GameModel *model, GameCommand cmd);
 
@@ -299,8 +301,6 @@ void model_scan_saves(GameModel *model);
 /**
  * @brief Sauvegarde binaire.
  * Ecrit l'intégralité de la structure `GameModel` dans un fichier.
- * @param model Le modèle à sauvegarder.
- * @param filename Nom du fichier cible.
  */
 void model_save_named(const GameModel *model, const char *filename);
 

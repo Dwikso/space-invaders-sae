@@ -92,7 +92,7 @@ $(function(){initNavTree('structViewInterface.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p>Structure regroupant les méthodes virtuelles de la Vue. Une implémentation concrète (ex: view_sdl) doit remplir ces pointeurs.  
+<p>Structure regroupant les méthodes virtuelles (API) d'une Vue.  
  <a href="#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="view__interface_8h_source.html">view_interface.h</a>&gt;</code></p>
@@ -100,17 +100,18 @@ $(function(){initNavTree('structViewInterface.html','',''); });
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
 <tr class="memitem:a4a65a72b137a8a28a39a6ac0ba410508" id="r_a4a65a72b137a8a28a39a6ac0ba410508"><td class="memItemLeft" align="right" valign="top">bool(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4a65a72b137a8a28a39a6ac0ba410508">init</a> )(void)</td></tr>
-<tr class="memdesc:a4a65a72b137a8a28a39a6ac0ba410508"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise la librairie graphique (Fenêtre, Textures, Sons, etc.).  <br /></td></tr>
+<tr class="memdesc:a4a65a72b137a8a28a39a6ac0ba410508"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialise le sous-système graphique et audio. Crée la fenêtre, charge les textures/sons, initialise les polices.  <br /></td></tr>
 <tr class="memitem:adf0fcaa2fafda7ab6197f4eee1775bab" id="r_adf0fcaa2fafda7ab6197f4eee1775bab"><td class="memItemLeft" align="right" valign="top"><a id="adf0fcaa2fafda7ab6197f4eee1775bab" name="adf0fcaa2fafda7ab6197f4eee1775bab"></a>
 void(*&#160;</td><td class="memItemRight" valign="bottom"><b>close</b> )(void)</td></tr>
-<tr class="memdesc:adf0fcaa2fafda7ab6197f4eee1775bab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ferme la fenêtre et libère toutes les ressources allouées (Textures, Mémoire). Doit être appelé avant de quitter le programme. <br /></td></tr>
+<tr class="memdesc:adf0fcaa2fafda7ab6197f4eee1775bab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Nettoyeur. Ferme la fenêtre et libère la mémoire. Doit détruire les textures, fermer les flux audio et quitter la librairie proprement. <br /></td></tr>
 <tr class="memitem:aa78cae014c7a327610e2cf94b215a0c7" id="r_aa78cae014c7a327610e2cf94b215a0c7"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa78cae014c7a327610e2cf94b215a0c7">render</a> )(const <a class="el" href="structGameModel.html">GameModel</a> *model)</td></tr>
-<tr class="memdesc:aa78cae014c7a327610e2cf94b215a0c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Dessine l'état actuel du jeu à l'écran. Cette fonction est appelée à chaque frame (60 fois par seconde).  <br /></td></tr>
+<tr class="memdesc:aa78cae014c7a327610e2cf94b215a0c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">La boucle de rendu. Dessine une frame complète. Cette fonction est appelée en boucle (ex: 60 fois par seconde). Elle doit effacer l'écran, dessiner tous les éléments du modèle, et afficher le résultat (flip).  <br /></td></tr>
 <tr class="memitem:ab84c4c093f2ea4df2ca75a589b8fefb1" id="r_ab84c4c093f2ea4df2ca75a589b8fefb1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="controller_8h.html#abc5a0df439bf92177bc39309fe831280">GameCommand</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab84c4c093f2ea4df2ca75a589b8fefb1">get_input</a> )(<a class="el" href="structGameModel.html">GameModel</a> *model)</td></tr>
-<tr class="memdesc:ab84c4c093f2ea4df2ca75a589b8fefb1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Récupère les entrées utilisateur (Clavier, Souris, Manette).  <br /></td></tr>
+<tr class="memdesc:ab84c4c093f2ea4df2ca75a589b8fefb1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Capteur d'événements (Input). Transforme les appuis touches/boutons bruts (SDL_Event, getch) en commandes de jeu logiques.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Structure regroupant les méthodes virtuelles de la Vue. Une implémentation concrète (ex: view_sdl) doit remplir ces pointeurs. </p>
+<div class="textblock"><p>Structure regroupant les méthodes virtuelles (API) d'une Vue. </p>
+<p>Pour créer une nouvelle vue (ex: <span class="tt">view_vulkan.c</span>), il suffit de créer une instance de cette structure et de remplir ces 4 pointeurs avec les fonctions correspondantes. </p>
 </div><a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Field Documentation</h2>
 <a id="ab84c4c093f2ea4df2ca75a589b8fefb1" name="ab84c4c093f2ea4df2ca75a589b8fefb1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab84c4c093f2ea4df2ca75a589b8fefb1">&#9670;&#160;</a></span>get_input</h2>
@@ -124,14 +125,14 @@ void(*&#160;</td><td class="memItemRight" valign="bottom"><b>close</b> )(void)</
       </table>
 </div><div class="memdoc">
 
-<p>Récupère les entrées utilisateur (Clavier, Souris, Manette). </p>
+<p>Capteur d'événements (Input). Transforme les appuis touches/boutons bruts (SDL_Event, getch) en commandes de jeu logiques. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">model</td><td>Pointeur vers le modèle (utile si l'input dépend de l'état, ex: saisie de texte). </td></tr>
+    <tr><td class="paramname">model</td><td>Pointeur vers le modèle (nécessaire pour le contexte, ex: saisie de texte vs jeu). </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Une commande abstraite (<a class="el" href="controller_8h.html#abc5a0df439bf92177bc39309fe831280" title="Liste de toutes les actions possibles que le joueur peut déclencher.">GameCommand</a>) à traiter par le contrôleur. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>La commande abstraite (<a class="el" href="controller_8h.html#abc5a0df439bf92177bc39309fe831280" title="Liste des commandes interprétables par le Contrôleur.">GameCommand</a>) correspondant à l'action du joueur. </dd></dl>
 
 </div>
 </div>
@@ -147,8 +148,8 @@ void(*&#160;</td><td class="memItemRight" valign="bottom"><b>close</b> )(void)</
       </table>
 </div><div class="memdoc">
 
-<p>Initialise la librairie graphique (Fenêtre, Textures, Sons, etc.). </p>
-<dl class="section return"><dt>Returns</dt><dd>true en cas de succès, false si une erreur critique survient. </dd></dl>
+<p>Initialise le sous-système graphique et audio. Crée la fenêtre, charge les textures/sons, initialise les polices. </p>
+<dl class="section return"><dt>Returns</dt><dd>true si tout s'est bien passé, false si une erreur critique (ex: pas de carte graphique) survient. </dd></dl>
 
 </div>
 </div>
@@ -164,10 +165,10 @@ void(*&#160;</td><td class="memItemRight" valign="bottom"><b>close</b> )(void)</
       </table>
 </div><div class="memdoc">
 
-<p>Dessine l'état actuel du jeu à l'écran. Cette fonction est appelée à chaque frame (60 fois par seconde). </p>
+<p>La boucle de rendu. Dessine une frame complète. Cette fonction est appelée en boucle (ex: 60 fois par seconde). Elle doit effacer l'écran, dessiner tous les éléments du modèle, et afficher le résultat (flip). </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">model</td><td>Pointeur constant vers le modèle (Lecture seule pour l'affichage). </td></tr>
+    <tr><td class="paramname">model</td><td>Pointeur en lecture seule (const) vers l'état du jeu à dessiner. </td></tr>
   </table>
   </dd>
 </dl>

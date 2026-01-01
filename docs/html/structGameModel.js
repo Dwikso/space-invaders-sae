@@ -3,6 +3,7 @@ var structGameModel =
     [ "animation_frame", "structGameModel.html#aa83164445106db176fb6fcf6e3af6006", null ],
     [ "animation_timer", "structGameModel.html#a70a525ebf5581fb6f8bbb34d870a7327", null ],
     [ "bullets", "structGameModel.html#a9dccad919d568b664f0a442658f74ff4", null ],
+    [ "current_filename", "structGameModel.html#a4282963c9aca1287319a16a05b6a8ef1", null ],
     [ "direction_enemies", "structGameModel.html#ad1e10c6c0da4656ca266cf53456656e0", null ],
     [ "drop_direction", "structGameModel.html#aa9228553b155f0592ab9449eb11ad20a", null ],
     [ "drop_step_count", "structGameModel.html#a583506b5961f7f2ab80ea338fec9b19a", null ],

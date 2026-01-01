@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['game_5fover_5ftimer_0',['game_over_timer',['../structGameModel.html#aab12eea9fe828325e3d603bd4afcd1fa',1,'GameModel']]],
-  ['get_5finput_1',['get_input',['../structViewInterface.html#ab84c4c093f2ea4df2ca75a589b8fefb1',1,'ViewInterface']]]
+  ['font_0',['font',['../structSDLContext.html#a0a701ea1f7d9ec19edaa1cbb529dac28',1,'SDLContext']]],
+  ['font_5ftitle_1',['font_title',['../structSDLContext.html#ae25b6e5972ea187143d8d560abeed261',1,'SDLContext']]]
 ];

@@ -92,7 +92,7 @@ $(function(){initNavTree('controller_8h.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p>Définition des commandes abstraites (Input) du jeu.  
+<p>Définition de l'interface de commande (Controller).  
 <a href="#details">More...</a></p>
 
 <p><a href="controller_8h_source.html">Go to the source code of this file.</a></p>
@@ -116,12 +116,11 @@ Enumerations</h2></td></tr>
 , <a class="el" href="#abc5a0df439bf92177bc39309fe831280a9cdf8298bbac9d1964121e0791f0742d">CMD_BACKSPACE</a>
 <br />
  }</td></tr>
-<tr class="memdesc:abc5a0df439bf92177bc39309fe831280"><td class="mdescLeft">&#160;</td><td class="mdescRight">Liste de toutes les actions possibles que le joueur peut déclencher.  <a href="#abc5a0df439bf92177bc39309fe831280">More...</a><br /></td></tr>
+<tr class="memdesc:abc5a0df439bf92177bc39309fe831280"><td class="mdescLeft">&#160;</td><td class="mdescRight">Liste des commandes interprétables par le Contrôleur.  <a href="#abc5a0df439bf92177bc39309fe831280">More...</a><br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Définition des commandes abstraites (Input) du jeu. </p>
-<p>Ce fichier définit l'interface entre les entrées brutes (Clavier SDL, Ncurses, Joystick) et la logique du jeu. Le modèle ne connaît pas les touches "Z", "Q", "Flèche", il ne connaît que des commandes abstraites comme CMD_MOVE_LEFT.</p>
-<dl class="section date"><dt>Date</dt><dd>2024 </dd></dl>
+<div class="textblock"><p>Définition de l'interface de commande (Controller). </p>
+<p>Ce fichier centralise toutes les actions possibles que le joueur peut effectuer. Il sert d'interface normalisée entre les entrées physiques et la logique du jeu. Cette structure garantit une grande évolutivité : elle permet d'ajouter facilement le support d'une manette (Gamepad) ou de reconfigurer les touches sans jamais avoir à modifier le code du Modèle. </p>
 </div><a name="doc-enum-members" id="doc-enum-members"></a><h2 id="header-doc-enum-members" class="groupheader">Enumeration Type Documentation</h2>
 <a id="abc5a0df439bf92177bc39309fe831280" name="abc5a0df439bf92177bc39309fe831280"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abc5a0df439bf92177bc39309fe831280">&#9670;&#160;</a></span>GameCommand</h2>
@@ -135,34 +134,32 @@ Enumerations</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Liste de toutes les actions possibles que le joueur peut déclencher. </p>
-<ul>
-<li>Cette énumération permet de découpler la logique du jeu (Modèle) de la gestion des périphériques (Vue/Inputs). </li>
-</ul>
+<p>Liste des commandes interprétables par le Contrôleur. </p>
+<p>Le Modèle reçoit uniquement ces valeurs, ignorant si elles proviennent d'un clavier, d'une manette ou d'un autre périphérique. </p>
 <table class="fieldtable">
-<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a93c1ce1fac89139d9f4df4b6db21b1cc" name="abc5a0df439bf92177bc39309fe831280a93c1ce1fac89139d9f4df4b6db21b1cc"></a>CMD_NONE&#160;</td><td class="fielddoc"><p>Aucune action (état par défaut ou touche relâchée) </p>
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a93c1ce1fac89139d9f4df4b6db21b1cc" name="abc5a0df439bf92177bc39309fe831280a93c1ce1fac89139d9f4df4b6db21b1cc"></a>CMD_NONE&#160;</td><td class="fielddoc"><p>Aucune action (état neutre ou touche relâchée). </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a22507047922c1ce8c921c8d193e67126" name="abc5a0df439bf92177bc39309fe831280a22507047922c1ce8c921c8d193e67126"></a>CMD_PAUSE&#160;</td><td class="fielddoc"><p>Mettre en pause ou reprendre le jeu (ex: P, Echap) </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a22507047922c1ce8c921c8d193e67126" name="abc5a0df439bf92177bc39309fe831280a22507047922c1ce8c921c8d193e67126"></a>CMD_PAUSE&#160;</td><td class="fielddoc"><p>Signal de pause ou reprise (ex: Touche P, Bouton Start). </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a423988140dabaa461f133924ca772294" name="abc5a0df439bf92177bc39309fe831280a423988140dabaa461f133924ca772294"></a>CMD_EXIT&#160;</td><td class="fielddoc"><p>Demande de fermeture du jeu ou d'annulation rapide. </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a423988140dabaa461f133924ca772294" name="abc5a0df439bf92177bc39309fe831280a423988140dabaa461f133924ca772294"></a>CMD_EXIT&#160;</td><td class="fielddoc"><p>Demande de fermeture immédiate ou retour forcé. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a048a54c3f471758630a798c32e569a61" name="abc5a0df439bf92177bc39309fe831280a048a54c3f471758630a798c32e569a61"></a>CMD_MOVE_LEFT&#160;</td><td class="fielddoc"><p>Déplacement continu du joueur vers la gauche. </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a048a54c3f471758630a798c32e569a61" name="abc5a0df439bf92177bc39309fe831280a048a54c3f471758630a798c32e569a61"></a>CMD_MOVE_LEFT&#160;</td><td class="fielddoc"><p>Ordre de déplacement continu vers la gauche. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a2c4169a621294eff31ae915846dbd65a" name="abc5a0df439bf92177bc39309fe831280a2c4169a621294eff31ae915846dbd65a"></a>CMD_MOVE_RIGHT&#160;</td><td class="fielddoc"><p>Déplacement continu du joueur vers la droite. </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a2c4169a621294eff31ae915846dbd65a" name="abc5a0df439bf92177bc39309fe831280a2c4169a621294eff31ae915846dbd65a"></a>CMD_MOVE_RIGHT&#160;</td><td class="fielddoc"><p>Ordre de déplacement continu vers la droite. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280aa60785bae96972dd147296dc3b06e7d2" name="abc5a0df439bf92177bc39309fe831280aa60785bae96972dd147296dc3b06e7d2"></a>CMD_SHOOT&#160;</td><td class="fielddoc"><p>Action de tirer (ex: Espace, Entrée) </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280aa60785bae96972dd147296dc3b06e7d2" name="abc5a0df439bf92177bc39309fe831280aa60785bae96972dd147296dc3b06e7d2"></a>CMD_SHOOT&#160;</td><td class="fielddoc"><p>Ordre de tir (ex: Barre Espace, Bouton A/X). </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280ac1e873d5b926f3b62f92a4679bcc6cef" name="abc5a0df439bf92177bc39309fe831280ac1e873d5b926f3b62f92a4679bcc6cef"></a>CMD_UP&#160;</td><td class="fielddoc"><p>Monter le curseur / Option précédente. </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280ac1e873d5b926f3b62f92a4679bcc6cef" name="abc5a0df439bf92177bc39309fe831280ac1e873d5b926f3b62f92a4679bcc6cef"></a>CMD_UP&#160;</td><td class="fielddoc"><p>Monter dans la liste / Option précédente. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a3077a6750ccd3147500875d62961a6f1" name="abc5a0df439bf92177bc39309fe831280a3077a6750ccd3147500875d62961a6f1"></a>CMD_DOWN&#160;</td><td class="fielddoc"><p>Descendre le curseur / Option suivante. </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a3077a6750ccd3147500875d62961a6f1" name="abc5a0df439bf92177bc39309fe831280a3077a6750ccd3147500875d62961a6f1"></a>CMD_DOWN&#160;</td><td class="fielddoc"><p>Descendre dans la liste / Option suivante. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a6209b9b123c01914b557bb921f334f88" name="abc5a0df439bf92177bc39309fe831280a6209b9b123c01914b557bb921f334f88"></a>CMD_LEFT&#160;</td><td class="fielddoc"><p>Diminuer une valeur (ex: Volume) / Gauche dans menu. </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a6209b9b123c01914b557bb921f334f88" name="abc5a0df439bf92177bc39309fe831280a6209b9b123c01914b557bb921f334f88"></a>CMD_LEFT&#160;</td><td class="fielddoc"><p>Diminuer une valeur / Navigation gauche. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a9f69104487ae00ae3f63308c4cd7ce58" name="abc5a0df439bf92177bc39309fe831280a9f69104487ae00ae3f63308c4cd7ce58"></a>CMD_RIGHT&#160;</td><td class="fielddoc"><p>Augmenter une valeur (ex: Volume) / Droite dans menu. </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a9f69104487ae00ae3f63308c4cd7ce58" name="abc5a0df439bf92177bc39309fe831280a9f69104487ae00ae3f63308c4cd7ce58"></a>CMD_RIGHT&#160;</td><td class="fielddoc"><p>Augmenter une valeur / Navigation droite. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a958f04212c5e4a3510a98dd4ddc9cacc" name="abc5a0df439bf92177bc39309fe831280a958f04212c5e4a3510a98dd4ddc9cacc"></a>CMD_RETURN&#160;</td><td class="fielddoc"><p>Valider une sélection (Entrée) </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a958f04212c5e4a3510a98dd4ddc9cacc" name="abc5a0df439bf92177bc39309fe831280a958f04212c5e4a3510a98dd4ddc9cacc"></a>CMD_RETURN&#160;</td><td class="fielddoc"><p>Valider une sélection / Entrer dans un menu. </p>
 </td></tr>
-<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a9cdf8298bbac9d1964121e0791f0742d" name="abc5a0df439bf92177bc39309fe831280a9cdf8298bbac9d1964121e0791f0742d"></a>CMD_BACKSPACE&#160;</td><td class="fielddoc"><p>Effacer un caractère (pour la saisie du nom de sauvegarde) </p>
+<tr><td class="fieldname"><a id="abc5a0df439bf92177bc39309fe831280a9cdf8298bbac9d1964121e0791f0742d" name="abc5a0df439bf92177bc39309fe831280a9cdf8298bbac9d1964121e0791f0742d"></a>CMD_BACKSPACE&#160;</td><td class="fielddoc"><p>Effacer un caractère (Correction lors de la sauvegarde). </p>
 </td></tr>
 </table>
 

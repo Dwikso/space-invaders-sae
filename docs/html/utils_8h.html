@@ -92,7 +92,7 @@ $(function(){initNavTree('utils_8h.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p>Fonctions utilitaires génériques (Temps, Aléatoire, Système).  
+<p>Bibliothèque de fonctions utilitaires transversales (Cross-cutting concerns).  
 <a href="#details">More...</a></p>
 <div class="textblock"><code>#include &lt;stdint.h&gt;</code><br />
 </div>
@@ -101,16 +101,15 @@ $(function(){initNavTree('utils_8h.html','',''); });
 <tr class="heading"><td colspan="2"><h2 id="header-func-members" class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:a67e97a00cbec17b49a737520702f5744" id="r_a67e97a00cbec17b49a737520702f5744"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a67e97a00cbec17b49a737520702f5744">utils_get_time</a> (void)</td></tr>
-<tr class="memdesc:a67e97a00cbec17b49a737520702f5744"><td class="mdescLeft">&#160;</td><td class="mdescRight">Récupère le temps actuel avec une haute précision. Utilise l'horloge monotone du système pour éviter les sauts temporels.  <br /></td></tr>
+<tr class="memdesc:a67e97a00cbec17b49a737520702f5744"><td class="mdescLeft">&#160;</td><td class="mdescRight">Récupère le temps actuel avec une haute précision (seconde).  <br /></td></tr>
 <tr class="memitem:a4a070281b89b7fdf5b81473abf290a3f" id="r_a4a070281b89b7fdf5b81473abf290a3f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4a070281b89b7fdf5b81473abf290a3f">utils_sleep_ms</a> (int ms)</td></tr>
-<tr class="memdesc:a4a070281b89b7fdf5b81473abf290a3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Met le thread principal en pause. Utilisé pour limiter les FPS (Frames Per Second).  <br /></td></tr>
+<tr class="memdesc:a4a070281b89b7fdf5b81473abf290a3f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Met le thread principal en pause (Sleep).  <br /></td></tr>
 <tr class="memitem:aec7132b5831cf9e563f0894a2c539909" id="r_aec7132b5831cf9e563f0894a2c539909"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aec7132b5831cf9e563f0894a2c539909">utils_random_int</a> (int min, int max)</td></tr>
-<tr class="memdesc:aec7132b5831cf9e563f0894a2c539909"><td class="mdescLeft">&#160;</td><td class="mdescRight">Génère un nombre entier pseudo-aléatoire dans un intervalle donné.  <br /></td></tr>
+<tr class="memdesc:aec7132b5831cf9e563f0894a2c539909"><td class="mdescLeft">&#160;</td><td class="mdescRight">Génère un nombre entier pseudo-aléatoire borné.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Fonctions utilitaires génériques (Temps, Aléatoire, Système). </p>
-<p>Ce module fournit des aides indépendantes de la logique du jeu, utilisées pour la gestion du temps (boucle de jeu) et la génération de nombres aléatoires.</p>
-<dl class="section date"><dt>Date</dt><dd>2024 </dd></dl>
+<div class="textblock"><p>Bibliothèque de fonctions utilitaires transversales (Cross-cutting concerns). </p>
+<p>Ce fichier regroupe des aides bas niveau pour interagir avec le système d'exploitation de manière abstraite. Il gère principalement le temps (pour la boucle de jeu et la physique) et l'aléatoire (pour le gameplay), sans que le reste du programme ait besoin de savoir si on est sous Windows ou Linux. </p>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Function Documentation</h2>
 <a id="a67e97a00cbec17b49a737520702f5744" name="a67e97a00cbec17b49a737520702f5744"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a67e97a00cbec17b49a737520702f5744">&#9670;&#160;</a></span>utils_get_time()</h2>
@@ -127,8 +126,11 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Récupère le temps actuel avec une haute précision. Utilise l'horloge monotone du système pour éviter les sauts temporels. </p>
-<dl class="section return"><dt>Returns</dt><dd>Le temps actuel en secondes (ex: 1234.5678). </dd></dl>
+<p>Récupère le temps actuel avec une haute précision (seconde). </p>
+<p>Cette fonction est cruciale pour le calcul du "Delta Time" (dt) dans la boucle de jeu. Elle utilise une horloge "monotone" pour garantir que le temps ne recule jamais, même si l'utilisateur change l'heure de son système.</p>
+<dl class="section return"><dt>Returns</dt><dd>Le temps écoulé en secondes depuis le lancement (ex: 12.5 pour 12s et 500ms).</dd></dl>
+<p>Récupère le temps actuel avec une haute précision (seconde).</p>
+<p>Utilise <span class="tt">CLOCK_MONOTONIC</span> : C'est une horloge qui ne revient jamais en arrière, même si l'utilisateur change l'heure de son ordinateur. C'est vital pour éviter que la physique du jeu ne plante ou ne saute. </p>
 
 </div>
 </div>
@@ -151,15 +153,18 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Génère un nombre entier pseudo-aléatoire dans un intervalle donné. </p>
+<p>Génère un nombre entier pseudo-aléatoire borné. </p>
+<p>Utilitaire simple pour le gameplay (ex: probabilité qu'un ennemi tire, apparition de l'OVNI, direction initiale).</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">min</td><td>Valeur minimale (incluse). </td></tr>
-    <tr><td class="paramname">max</td><td>Valeur maximale (incluse). </td></tr>
+    <tr><td class="paramname">min</td><td>Borne inférieure (incluse). </td></tr>
+    <tr><td class="paramname">max</td><td>Borne supérieure (incluse). </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Un entier n tel que min &lt;= n &lt;= max. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Un entier 'n' tel que : min &lt;= n &lt;= max.</dd></dl>
+<p>Génère un nombre entier pseudo-aléatoire borné.</p>
+<p>Utilise l'arithmétique modulaire pour borner le résultat entre min et max. Note : Suppose que srand() a été appelé au début du programme (fait dans model_init). </p>
 
 </div>
 </div>
@@ -178,13 +183,16 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Met le thread principal en pause. Utilisé pour limiter les FPS (Frames Per Second). </p>
+<p>Met le thread principal en pause (Sleep). </p>
+<p>Sert à "ralentir" la boucle de jeu pour ne pas consommer 100% du CPU inutilement et pour respecter la consigne de FPS (Frames Per Second) définie dans <a class="el" href="common_8h.html" title="Configuration globale et constantes du jeu.">common.h</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">ms</td><td>Durée de la pause en millisecondes. </td></tr>
+    <tr><td class="paramname">ms</td><td>Durée de la pause en millisecondes.</td></tr>
   </table>
   </dd>
 </dl>
+<p>Met le thread principal en pause (Sleep).</p>
+<p>Utilise <span class="tt">nanosleep</span> qui est plus précis que le <span class="tt">sleep()</span> standard et n'interfère pas avec les signaux système. </p>
 
 </div>
 </div>

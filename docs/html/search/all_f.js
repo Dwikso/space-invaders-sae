@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['target_5ffps_0',['TARGET_FPS',['../common_8h.html#acef24ae9a88131f27f1554acfd6ad976',1,'common.h']]],
-  ['type_1',['type',['../structEntity.html#a4bc4656e671f86ebd33eaa78d1855ea9',1,'Entity']]]
+  ['render_0',['render',['../structViewInterface.html#aa78cae014c7a327610e2cf94b215a0c7',1,'ViewInterface']]],
+  ['renderer_1',['renderer',['../structSDLContext.html#a5707770bafe87f7c4e5843d7739ee534',1,'SDLContext']]]
 ];

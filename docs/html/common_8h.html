@@ -92,7 +92,7 @@ $(function(){initNavTree('common_8h.html','',''); });
 </div><!--header-->
 <div class="contents">
 
-<p>Constantes globales et configuration générale du projet.  
+<p>Configuration globale et constantes du jeu.  
 <a href="#details">More...</a></p>
 <div class="textblock"><code>#include &lt;stdbool.h&gt;</code><br />
 </div>
@@ -100,38 +100,34 @@ $(function(){initNavTree('common_8h.html','',''); });
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
-<tr id="define-members-0" class="groupHeader"><td colspan="2"><div class="groupHeader">Système de Coordonnées</div></td></tr>
-<tr><td colspan="2" class="ititle"><div class="groupText"><ul>
-<li>Ces dimensions définissent la grille logique du jeu. Le rendu (SDL ou Ncurses) se charge ensuite d'étirer (scale) ces coordonnées pour qu'elles s'adaptent à la taille réelle de la fenêtre ou du terminal. </li>
-</ul>
+<tr id="define-members-0" class="groupHeader"><td colspan="2"><div class="groupHeader">Grille de Jeu</div></td></tr>
+<tr><td colspan="2" class="ititle"><div class="groupText"><p>Dimensions abstraites du terrain. Le rendu (SDL/Ncurses) se charge d'adapter ces coordonnées à la taille réelle de la fenêtre. </p>
 </div></td></tr>
-<tr class="memitem:a693f306b88f7336281e4d1f07754579c" id="r_a693f306b88f7336281e4d1f07754579c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a693f306b88f7336281e4d1f07754579c">GAME_WIDTH</a>&#160;&#160;&#160;100</td></tr>
-<tr class="memdesc:a693f306b88f7336281e4d1f07754579c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Largeur logique du terrain de jeu. Les entités évoluent entre x=0 et x=100.  <br /></td></tr>
-<tr class="memitem:addffa3e327bacbc3da87278442b2b507" id="r_addffa3e327bacbc3da87278442b2b507"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#addffa3e327bacbc3da87278442b2b507">GAME_HEIGHT</a>&#160;&#160;&#160;50</td></tr>
-<tr class="memdesc:addffa3e327bacbc3da87278442b2b507"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hauteur logique du terrain de jeu. Les entités évoluent entre y=0 et y=50.  <br /></td></tr>
-<tr id="define-members-1" class="groupHeader"><td colspan="2"><div class="groupHeader">Allocation Statique</div></td></tr>
-<tr><td colspan="2" class="ititle"><div class="groupText"><ul>
-<li>Ces constantes définissent la taille maximale des tableaux fixes. Cela permet d'éviter l'utilisation lente de <span class="tt">malloc</span> pendant la boucle de jeu. </li>
-</ul>
+<tr class="memitem:a693f306b88f7336281e4d1f07754579c" id="r_a693f306b88f7336281e4d1f07754579c"><td class="memItemLeft" align="right" valign="top"><a id="a693f306b88f7336281e4d1f07754579c" name="a693f306b88f7336281e4d1f07754579c"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>GAME_WIDTH</b>&#160;&#160;&#160;100</td></tr>
+<tr class="memdesc:a693f306b88f7336281e4d1f07754579c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Largeur logique du terrain (0 à 100). <br /></td></tr>
+<tr class="memitem:addffa3e327bacbc3da87278442b2b507" id="r_addffa3e327bacbc3da87278442b2b507"><td class="memItemLeft" align="right" valign="top"><a id="addffa3e327bacbc3da87278442b2b507" name="addffa3e327bacbc3da87278442b2b507"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>GAME_HEIGHT</b>&#160;&#160;&#160;50</td></tr>
+<tr class="memdesc:addffa3e327bacbc3da87278442b2b507"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hauteur logique du terrain (0 à 50). <br /></td></tr>
+<tr id="define-members-1" class="groupHeader"><td colspan="2"><div class="groupHeader">Tableaux Statiques</div></td></tr>
+<tr><td colspan="2" class="ititle"><div class="groupText"><p>Tailles maximales pour éviter les allocations dynamiques (malloc) durant la boucle de jeu principale. </p>
 </div></td></tr>
 <tr class="memitem:a544651f3405cff79c40d898a8e54f507" id="r_a544651f3405cff79c40d898a8e54f507"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a544651f3405cff79c40d898a8e54f507">MAX_ENEMIES</a>&#160;&#160;&#160;60</td></tr>
-<tr class="memdesc:a544651f3405cff79c40d898a8e54f507"><td class="mdescLeft">&#160;</td><td class="mdescRight">Nombre maximum d'ennemis affichables simultanément. (5 rangées de 11 ennemis = 55, arrondi à 60 par sécurité).  <br /></td></tr>
+<tr class="memdesc:a544651f3405cff79c40d898a8e54f507"><td class="mdescLeft">&#160;</td><td class="mdescRight">Nombre maximum d'ennemis actifs simultanément. (Prévision large pour une grille standard d'envahisseurs).  <br /></td></tr>
 <tr class="memitem:a4331843c2698da5ccb18562eb1485681" id="r_a4331843c2698da5ccb18562eb1485681"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4331843c2698da5ccb18562eb1485681">MAX_BULLETS</a>&#160;&#160;&#160;100</td></tr>
-<tr class="memdesc:a4331843c2698da5ccb18562eb1485681"><td class="mdescLeft">&#160;</td><td class="mdescRight">Nombre maximum de projectiles simultanés. Inclut les tirs du joueur et ceux des ennemis.  <br /></td></tr>
+<tr class="memdesc:a4331843c2698da5ccb18562eb1485681"><td class="mdescLeft">&#160;</td><td class="mdescRight">Nombre maximum de projectiles à l'écran. Cumule les tirs du joueur et ceux des ennemis.  <br /></td></tr>
 <tr id="define-members-2" class="groupHeader"><td colspan="2"><div class="groupHeader">Gestion du Temps</div></td></tr>
-<tr><td colspan="2" class="ititle"><div class="groupText"><ul>
-<li>Paramètres pour réguler la vitesse d'exécution du jeu. </li>
-</ul>
+<tr><td colspan="2" class="ititle"><div class="groupText"><p>Constantes pour stabiliser la vitesse du jeu sur différents CPU. </p>
 </div></td></tr>
-<tr class="memitem:acef24ae9a88131f27f1554acfd6ad976" id="r_acef24ae9a88131f27f1554acfd6ad976"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acef24ae9a88131f27f1554acfd6ad976">TARGET_FPS</a>&#160;&#160;&#160;60</td></tr>
-<tr class="memdesc:acef24ae9a88131f27f1554acfd6ad976"><td class="mdescLeft">&#160;</td><td class="mdescRight">Fréquence d'images cible (Frames Per Second). Définit la fluidité du jeu. 60 FPS est le standard pour les jeux d'arcade.  <br /></td></tr>
+<tr class="memitem:acef24ae9a88131f27f1554acfd6ad976" id="r_acef24ae9a88131f27f1554acfd6ad976"><td class="memItemLeft" align="right" valign="top"><a id="acef24ae9a88131f27f1554acfd6ad976" name="acef24ae9a88131f27f1554acfd6ad976"></a>
+#define&#160;</td><td class="memItemRight" valign="bottom"><b>TARGET_FPS</b>&#160;&#160;&#160;60</td></tr>
+<tr class="memdesc:acef24ae9a88131f27f1554acfd6ad976"><td class="mdescLeft">&#160;</td><td class="mdescRight">Cible d'images par seconde (Standard Arcade). <br /></td></tr>
 <tr class="memitem:a33fabd29c10aabcb416dfbf5c84d3e08" id="r_a33fabd29c10aabcb416dfbf5c84d3e08"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a33fabd29c10aabcb416dfbf5c84d3e08">FRAME_DELAY</a>&#160;&#160;&#160;(1000 / <a class="el" href="#acef24ae9a88131f27f1554acfd6ad976">TARGET_FPS</a>)</td></tr>
-<tr class="memdesc:a33fabd29c10aabcb416dfbf5c84d3e08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Durée minimale d'une frame en millisecondes. Calculé : 1000ms / 60fps ≈ 16ms. Utilisé pour endormir le processeur (SDL_Delay) si le calcul est trop rapide.  <br /></td></tr>
+<tr class="memdesc:a33fabd29c10aabcb416dfbf5c84d3e08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Durée minimale d'une frame en millisecondes. (1000ms / 60fps ≈ 16ms). Utilisé pour la pause (sleep) en fin de boucle.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Constantes globales et configuration générale du projet. </p>
-<p>Ce fichier contient les paramètres fondamentaux qui sont partagés entre le Modèle, la Vue et le Contrôleur. Il définit notamment les dimensions abstraites du jeu (indépendantes de l'affichage) et les contraintes de performance (FPS, limites mémoire).</p>
-<dl class="section date"><dt>Date</dt><dd>2024 </dd></dl>
+<div class="textblock"><p>Configuration globale et constantes du jeu. </p>
+<p>Ce fichier définit les dimensions logiques (indépendantes de l'écran), les limites de mémoire (tableaux statiques) et la gestion du temps (FPS). Il est inclus par le Modèle, la Vue et le Contrôleur. </p>
 </div><a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
 <a id="a33fabd29c10aabcb416dfbf5c84d3e08" name="a33fabd29c10aabcb416dfbf5c84d3e08"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a33fabd29c10aabcb416dfbf5c84d3e08">&#9670;&#160;</a></span>FRAME_DELAY</h2>
@@ -145,45 +141,7 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Durée minimale d'une frame en millisecondes. Calculé : 1000ms / 60fps ≈ 16ms. Utilisé pour endormir le processeur (SDL_Delay) si le calcul est trop rapide. </p>
-<ul>
-<li></li>
-</ul>
-
-</div>
-</div>
-<a id="addffa3e327bacbc3da87278442b2b507" name="addffa3e327bacbc3da87278442b2b507"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#addffa3e327bacbc3da87278442b2b507">&#9670;&#160;</a></span>GAME_HEIGHT</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define GAME_HEIGHT&#160;&#160;&#160;50</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Hauteur logique du terrain de jeu. Les entités évoluent entre y=0 et y=50. </p>
-<ul>
-<li></li>
-</ul>
-
-</div>
-</div>
-<a id="a693f306b88f7336281e4d1f07754579c" name="a693f306b88f7336281e4d1f07754579c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a693f306b88f7336281e4d1f07754579c">&#9670;&#160;</a></span>GAME_WIDTH</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define GAME_WIDTH&#160;&#160;&#160;100</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Largeur logique du terrain de jeu. Les entités évoluent entre x=0 et x=100. </p>
+<p>Durée minimale d'une frame en millisecondes. (1000ms / 60fps ≈ 16ms). Utilisé pour la pause (sleep) en fin de boucle. </p>
 <ul>
 <li></li>
 </ul>
@@ -202,7 +160,7 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Nombre maximum de projectiles simultanés. Inclut les tirs du joueur et ceux des ennemis. </p>
+<p>Nombre maximum de projectiles à l'écran. Cumule les tirs du joueur et ceux des ennemis. </p>
 <ul>
 <li></li>
 </ul>
@@ -221,26 +179,7 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Nombre maximum d'ennemis affichables simultanément. (5 rangées de 11 ennemis = 55, arrondi à 60 par sécurité). </p>
-<ul>
-<li></li>
-</ul>
-
-</div>
-</div>
-<a id="acef24ae9a88131f27f1554acfd6ad976" name="acef24ae9a88131f27f1554acfd6ad976"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acef24ae9a88131f27f1554acfd6ad976">&#9670;&#160;</a></span>TARGET_FPS</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">#define TARGET_FPS&#160;&#160;&#160;60</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Fréquence d'images cible (Frames Per Second). Définit la fluidité du jeu. 60 FPS est le standard pour les jeux d'arcade. </p>
+<p>Nombre maximum d'ennemis actifs simultanément. (Prévision large pour une grille standard d'envahisseurs). </p>
 <ul>
 <li></li>
 </ul>
