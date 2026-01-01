@@ -10,6 +10,7 @@
 
 ## 📋 Table des matières
 
+- [Aperçu](#-aperçu)
 - [Description](#-description)
 - [Caractéristiques](#-caractéristiques)
 - [Architecture MVC](#-architecture-mvc)
@@ -23,6 +24,15 @@
 - [Dépannage](#-dépannage)
 - [Contribution](#-contribution)
 - [Licence](#-licence)
+
+---
+
+### 📸 Aperçu
+
+|            Interface SDL3 (Graphique)            |              Interface ncurses (Terminal)               |
+| :----------------------------------------------: | :-----------------------------------------------------: |
+| ![Mode SDL3](/assets/preview/SDL_Homescreen.png) | ![Mode ncurses](/assets/preview/Ncurses_Homescreen.png) |
+| ![Mode SDL3](/assets/preview/SDL_Gamescreen.png) | ![Mode ncurses](/assets/preview/Ncurses_Gamescreen.png) |
 
 ---
 

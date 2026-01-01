@@ -272,7 +272,7 @@ static void ncurses_render(const GameModel *model)
     {
         if (model->bullets[i].active)
         {
-            int bx = (int)(model->bullets[i].x * scale_x) + 1;
+            int bx = (int)((model->bullets[i].x - 0.8f) * scale_x) + 1;
             int by = (int)(model->bullets[i].y * scale_y) + 1;
             if (bx > 0 && bx < cols - 1 && by > 0 && by < rows - 1)
                 mvaddch(by, bx, CHAR_BULLET);
