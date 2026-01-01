@@ -1,3 +1,11 @@
+/**
+ * @file view_ncurses.c
+ * @brief Implémentation de la vue en mode terminal avec ncurses.
+ *
+ * Ce fichier gère l'affichage du jeu Space Invaders dans un terminal
+ * en utilisant la bibliothèque ncurses pour le rendu ASCII et les couleurs.
+ */
+
 #include "view_ncurses.h"
 #include <ncurses.h>
 #include <string.h>
@@ -8,7 +16,7 @@
 // ASSETS VISUELS
 // ============================================================================
 static const char *SPRITE_PLAYER = "_^_";
-static const char *SPRITE_PLAYER_HIT = "*#*"; // Quand touché
+static const char *SPRITE_PLAYER_HIT = "*#*";
 static const char *SPRITE_A1 = "/^\\";
 static const char *SPRITE_A2 = "/M\\";
 static const char *SPRITE_A3 = "/o\\";
@@ -24,6 +32,16 @@ static const char CHAR_BULLET = '|';
 // ============================================================================
 // INITIALISATION
 // ============================================================================
+
+/**
+ * @brief Initialise la bibliothèque ncurses et configure le terminal.
+ *
+ * Configure le mode cbreak, désactive l'écho, active le clavier étendu,
+ * masque le curseur et active le mode non-bloquant. Initialise également
+ * les paires de couleurs si le terminal les supporte.
+ *
+ * @return true si l'initialisation a réussi, false sinon.
+ */
 static bool ncurses_init(void)
 {
     initscr();
@@ -48,11 +66,27 @@ static bool ncurses_init(void)
     }
     return true;
 }
+
+/**
+ * @brief Ferme proprement la session ncurses.
+ *
+ * Restaure le terminal dans son état initial avant l'exécution du programme.
+ */
 static void ncurses_close(void)
 {
     endwin();
 }
 
+/**
+ * @brief Affiche un texte centré horizontalement à une position verticale relative.
+ *
+ * Calcule automatiquement la position X pour centrer le texte à l'écran
+ * et applique la couleur spécifiée.
+ *
+ * @param y_offset Décalage vertical par rapport au centre de l'écran.
+ * @param text Le texte à afficher.
+ * @param pair_color L'index de la paire de couleurs ncurses à utiliser.
+ */
 static void draw_centered(int y_offset, const char *text, int pair_color)
 {
     int h, w;
@@ -73,6 +107,22 @@ static void draw_centered(int y_offset, const char *text, int pair_color)
 // ============================================================================
 // RENDU (RENDER)
 // ============================================================================
+
+/**
+ * @brief Effectue le rendu complet du jeu dans le terminal.
+ *
+ * Dessine tous les éléments du jeu selon l'état actuel :
+ * - Menu principal avec options
+ * - Menu de chargement des sauvegardes
+ * - Écran tutoriel avec tableau des points
+ * - Zone de jeu avec joueur, ennemis, UFO, boucliers et balles
+ * - Menus popup (pause, game over, sauvegarde, confirmation)
+ *
+ * Le rendu est adapté dynamiquement à la taille du terminal avec un système
+ * de mise à l'échelle.
+ *
+ * @param model Le modèle de jeu contenant l'état actuel à afficher.
+ */
 static void ncurses_render(const GameModel *model)
 {
     erase();
@@ -98,14 +148,13 @@ static void ncurses_render(const GameModel *model)
     {
         draw_centered(-6, "=== SPACE INVADERS ===", 1);
 
-        // On garde 4 options (Volume est l'index 3)
         const char *options[] = {"JOUER", "TUTORIEL", "CHARGER", "VOLUME", "QUITTER"};
 
         for (int i = 0; i < 5; i++)
         {
             char buf[64];
             if (i == 3)
-                snprintf(buf, 64, "VOLUME (N/A)"); // On l'affiche mais marqué N/A
+                snprintf(buf, 64, "VOLUME (N/A)");
             else
                 strcpy(buf, options[i]);
 
@@ -144,42 +193,33 @@ static void ncurses_render(const GameModel *model)
 
     if (model->state == STATE_TUTORIAL)
     {
-        draw_centered(-9, "=== TABLEAU DES POINTS ===", 6); // Titre Magenta
+        draw_centered(-9, "=== TABLEAU DES POINTS ===", 6);
 
         int cx = cols / 2;
         int cy = rows / 2;
 
-        // 1. UFO (OVNI)
-        // Affiche : <==O==>   = 100 PTS + ???
-        attron(COLOR_PAIR(2)); // Rouge
+        attron(COLOR_PAIR(2));
         mvprintw(cy - 5, cx - 12, "%s", SPRITE_UFO);
         attroff(COLOR_PAIR(2));
         attron(A_BOLD);
         mvprintw(cy - 5, cx - 4, "= 100 PTS + ???");
         attroff(A_BOLD);
 
-        // 2. ENNEMI TYPE 3 (Haut / Calamar)
-        // Affiche : /^^\      = 30 PTS
-        attron(COLOR_PAIR(6));                        // Magenta
-        mvprintw(cy - 3, cx - 12, " %s ", SPRITE_A1); // Espaces pour centrer le petit sprite
+        attron(COLOR_PAIR(6));
+        mvprintw(cy - 3, cx - 12, " %s ", SPRITE_A1);
         attroff(COLOR_PAIR(6));
         mvprintw(cy - 3, cx - 4, "= 30 PTS");
 
-        // 3. ENNEMI TYPE 2 (Milieu / Crabe)
-        // Affiche : /MM\      = 20 PTS
-        attron(COLOR_PAIR(5)); // Cyan
+        attron(COLOR_PAIR(5));
         mvprintw(cy - 1, cx - 12, " %s ", SPRITE_A2);
         attroff(COLOR_PAIR(5));
         mvprintw(cy - 1, cx - 4, "= 20 PTS");
 
-        // 4. ENNEMI TYPE 1 (Bas / Poulpe)
-        // Affiche : /oo\      = 10 PTS
-        attron(COLOR_PAIR(1)); // Vert
+        attron(COLOR_PAIR(1));
         mvprintw(cy + 1, cx - 12, " %s ", SPRITE_A3);
         attroff(COLOR_PAIR(1));
         mvprintw(cy + 1, cx - 4, "= 10 PTS");
 
-        // Commandes (Bas de page)
         draw_centered(5, "FLECHES : Deplacer", 7);
         draw_centered(6, "ESPACE  : Tirer", 7);
 
@@ -204,20 +244,17 @@ static void ncurses_render(const GameModel *model)
         int py = (int)(model->player.y * scale_y) + 1;
         if (px < cols - 3 && py < rows - 1)
         {
-            // Si le joueur vient d'être touché (hit_timer > 0), il clignote en ROUGE
             if (model->hit_timer > 0)
             {
-                // Clignotement rapide
                 if ((int)(model->hit_timer * 5) % 2 == 0)
                 {
-                    attron(COLOR_PAIR(2)); // Rouge
+                    attron(COLOR_PAIR(2));
                     mvprintw(py, px, "%s", SPRITE_PLAYER_HIT);
                     attroff(COLOR_PAIR(2));
                 }
             }
             else
             {
-                // Normal
                 attron(COLOR_PAIR(1));
                 mvprintw(py, px, "%s", SPRITE_PLAYER);
                 attroff(COLOR_PAIR(1));
@@ -283,12 +320,11 @@ static void ncurses_render(const GameModel *model)
             if (sh < 1)
                 sh = 1;
 
-            // Choix du caractère selon la vie (Health max = 10)
             char c = SHIELD_FULL;
             if (model->shields[i].health <= 3)
-                c = SHIELD_LOW; // Très abimé (.)
+                c = SHIELD_LOW;
             else if (model->shields[i].health <= 6)
-                c = SHIELD_MED; // Abimé (+)
+                c = SHIELD_MED;
 
             for (int y = 0; y < sh; y++)
                 for (int x = 0; x < sw; x++)
@@ -329,7 +365,6 @@ static void ncurses_render(const GameModel *model)
                 attroff(COLOR_PAIR(7));
         }
     }
-    // GAME OVER (Correction de l'ordre)
     else if (model->state == STATE_GAME_OVER)
     {
         draw_centered(-3, "!!! GAME OVER !!!", 2);
@@ -338,7 +373,6 @@ static void ncurses_render(const GameModel *model)
         snprintf(sc, 32, "SCORE FINAL: %d", model->score);
         draw_centered(-1, sc, 1);
 
-        // Correspond aux options dans model.c (0=Save, 1=Replay, 2=Quit)
         const char *o[] = {"SAUVEGARDER SCORE", "REJOUER", "QUITTER"};
         for (int i = 0; i < 3; i++)
         {
@@ -354,15 +388,13 @@ static void ncurses_render(const GameModel *model)
     {
         draw_centered(-8, "=== CHOISIR EMPLACEMENT ===", 5);
 
-        // OPTION 0 : TOUJOURS "NOUVELLE SAUVEGARDE"
-        int col_new = (model->menu_selection == 0) ? 7 : 1; // 1=Vert
+        int col_new = (model->menu_selection == 0) ? 7 : 1;
         if (model->menu_selection == 0)
             attron(COLOR_PAIR(7));
         draw_centered(-4, "[ + ]  NOUVELLE SAUVEGARDE", col_new);
         if (model->menu_selection == 0)
             attroff(COLOR_PAIR(7));
 
-        // OPTION 1+ : LISTE DES FICHIERS EXISTANTS
         if (model->save_file_count == 0)
         {
             draw_centered(0, "(Aucun fichier existant)", 4);
@@ -371,8 +403,6 @@ static void ncurses_render(const GameModel *model)
         {
             for (int i = 0; i < model->save_file_count; i++)
             {
-                // L'index du menu est décalé de 1 (car 0 est "Nouvelle")
-                // Donc le fichier i correspond à l'option i+1
                 int menu_index = i + 1;
 
                 char buf[512];
@@ -382,7 +412,6 @@ static void ncurses_render(const GameModel *model)
                 if (model->menu_selection == menu_index)
                     attron(COLOR_PAIR(7));
 
-                // On affiche la liste un peu plus bas
                 draw_centered(-2 + (i * 1), buf, col);
 
                 if (model->menu_selection == menu_index)
@@ -416,20 +445,17 @@ static void ncurses_render(const GameModel *model)
     // CONFIRMATION ECRASER (Nouveau style)
     else if (model->state == STATE_OVERWRITE_CONFIRM)
     {
-        draw_centered(-4, "CE FICHIER EXISTE DEJA !", 3); // Jaune
+        draw_centered(-4, "CE FICHIER EXISTE DEJA !", 3);
 
-        // Affiche le nom actuel
         char buf[64];
         snprintf(buf, 64, "'%s.dat'", model->input_buffer);
         draw_centered(-2, buf, 7);
 
-        // Option 0 : Ecraser
         const char *opt0 = (model->menu_selection == 0) ? "> ECRASER <" : "  ECRASER  ";
-        // Option 1 : Nouveau (Automatique)
         const char *opt1 = (model->menu_selection == 1) ? "> CREER COPIE (1..) <" : "  CREER COPIE (1..)  ";
 
-        draw_centered(1, opt0, (model->menu_selection == 0 ? 2 : 0)); // 2=Rouge pour danger
-        draw_centered(3, opt1, (model->menu_selection == 1 ? 7 : 0)); // 7=Standard
+        draw_centered(1, opt0, (model->menu_selection == 0 ? 2 : 0));
+        draw_centered(3, opt1, (model->menu_selection == 1 ? 7 : 0));
     }
     refresh();
 }
@@ -437,6 +463,24 @@ static void ncurses_render(const GameModel *model)
 // ============================================================================
 // GESTION INPUT
 // ============================================================================
+
+/**
+ * @brief Récupère et traduit les entrées clavier en commandes de jeu.
+ *
+ * Gère deux modes de saisie :
+ * - Mode normal : traduit les touches directionnelles, espace, entrée, etc.
+ * - Mode saisie de texte (STATE_SAVE_INPUT) : capture les caractères alphanumériques
+ *
+ * Correspondances des touches :
+ * - Flèches / ZQSD : Navigation et déplacement
+ * - Espace : Tir
+ * - Entrée : Validation
+ * - P / Échap : Pause
+ * - Backspace : Effacement (en mode saisie)
+ *
+ * @param model Le modèle de jeu (utilisé pour connaître l'état et le buffer de saisie).
+ * @return La commande GameCommand correspondant à la touche pressée.
+ */
 static GameCommand ncurses_get_input(GameModel *model)
 {
     int ch = getch();

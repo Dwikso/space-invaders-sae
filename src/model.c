@@ -1,10 +1,15 @@
+/**
+ * @file model.c
+ * @brief Implémentation de la logique du jeu (Physique, IA, Collisions).
+ */
+
 #include "model.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-// Gestion des dossiers (Spécifique Linux/POSIX)
+// Gestion des dossiers (Spécifique Linux pour les sauvegardes)
 #include <sys/stat.h>
 #include <dirent.h>
 
@@ -12,45 +17,57 @@
 //                          1. FONCTIONS INTERNES (HELPERS)
 // ============================================================================
 
-// Vérifie la collision entre deux entités (AABB)
+/**
+ * @brief Teste la collision entre deux entités via AABB (Axis-Aligned Bounding Box).
+ * @return true si les rectangles se chevauchent.
+ */
 static bool check_collision(const Entity *a, const Entity *b)
 {
     if (!a->active || !b->active)
-        return false;
+        return false; // Pas de collision si l'un est inactif/mort
 
+    // Vérifie le chevauchement sur les axes X et Y
     return (a->x < b->x + b->width &&
             a->x + a->width > b->x &&
             a->y < b->y + b->height &&
             a->y + a->height > b->y);
 }
 
-// Trouve une place vide dans le tableau de balles
+/**
+ * @brief Recherche un slot libre dans le tableau (Pool) et active une balle.
+ */
 static void spawn_bullet(GameModel *model, float x, float y, float dy, EntityType type)
 {
     for (int i = 0; i < MAX_BULLETS; i++)
     {
-        if (!model->bullets[i].active)
+        if (!model->bullets[i].active) // Slot trouvé
         {
-            // On initialise la balle
             model->bullets[i].active = true;
             model->bullets[i].x = x;
             model->bullets[i].y = y;
             model->bullets[i].dx = 0;
-            model->bullets[i].dy = dy;
+            model->bullets[i].dy = dy; // Vitesse verticale (+ monte, - descend)
             model->bullets[i].width = BULLET_WIDTH;
             model->bullets[i].height = BULLET_HEIGHT;
             model->bullets[i].type = type;
+
+            // Reset animation
             model->bullets[i].anim_timer = 0;
             model->bullets[i].anim_frame = 0;
-            return; // On a trouvé une place, on arrête
+            return; // Balle créée, on arrête la recherche
         }
     }
 }
-
-// Vérifie si un fichier existe déjà
+/**
+ * @brief Vérifie l'existence physique d'un fichier dans le répertoire de sauvegarde.
+ * * Tente d'ouvrir le fichier en lecture binaire pour confirmer sa présence.
+ * * @param filename Le nom du fichier à tester (ex: "Partie1.dat").
+ * @return true si le fichier existe et est accessible, false sinon.
+ */
 static bool save_file_exists(const char *filename)
 {
     char path[128];
+    // Construction du chemin relatif : sauvegardes/ + filename
     snprintf(path, sizeof(path), "sauvegardes/%s", filename);
 
     FILE *f = fopen(path, "rb");
@@ -61,112 +78,144 @@ static bool save_file_exists(const char *filename)
     }
     return false;
 }
-// Trouve un nom unique: "nom.dat" -> "nom(1).dat" -> "nom(2).dat"
+
+/**
+ * @brief Génère un nom de fichier unique par incrémentation automatique.
+ * * Cette fonction évite l'écrasement involontaire. Si "Partie" est demandé mais existe déjà,
+ * elle génère "Partie(1).dat", puis "Partie(2).dat", etc., jusqu'à trouver un slot libre.
+ * * @param base_name La racine du nom (ex: "Partie").
+ * @param out_buffer Buffer de sortie qui recevra le nom final unique.
+ */
 static void generate_unique_filename(const char *base_name, char *out_buffer)
 {
     int i = 1;
     char candidate[128];
 
-    // Tant qu'on trouve un fichier qui existe, on incrémente le numéro
+    // Recherche itérative d'un suffixe (N) disponible
     while (true)
     {
-        // On formate : "Sauvegarde(1).dat"
         snprintf(candidate, sizeof(candidate), "%s(%d).dat", base_name, i);
 
-        // Si ce fichier N'EXISTE PAS, c'est gagné !
         if (!save_file_exists(candidate))
         {
-            strcpy(out_buffer, candidate); // On renvoie ce nom
-            return;
+            strcpy(out_buffer, candidate);
+            return; // Nom unique trouvé
         }
-        i++; // Sinon on tente (2), (3)...
+        i++;
     }
 }
-
 // ============================================================================
 //                          2. LOGIQUE ENNEMIS & UFO
 // ============================================================================
-
+/**
+ * @brief Initialise la grille d'ennemis (Wave) pour un début de niveau.
+ *
+ * Crée une formation classique de 5 rangées par 11 colonnes.
+ * Réinitialise également la physique de groupe (vitesse, direction) et l'état de l'OVNI.
+ *
+ * @param model Le modèle contenant le tableau d'ennemis.
+ */
 static void init_enemies(GameModel *model)
 {
     int idx = 0;
 
-    // 5 rangées de 11 colonnes
+    // Formation : 5 rangées de 11 colonnes
     for (int row = 0; row < 5; row++)
     {
         for (int col = 0; col < 11; col++)
         {
             if (idx >= MAX_ENEMIES)
-                break;
+                break; // Sécurité débordement
 
             Entity *e = &model->enemies[idx];
 
-            // 1. NETTOYAGE COMPLET : Met tout à 0 (x, y, timer, active, exploding...)
-            // Cela remplace toutes les lignes manuelles "e->exploding = false" etc.
+            // 1. Met à zéro tous les champs (exploding, timers, etc.)
+            // Indispensable pour éviter des bugs visuels au redémarrage.
             memset(e, 0, sizeof(Entity));
 
-            // 2. CONFIGURATION
+            // 2. CONFIGURATION PHYSIQUE
             e->active = true;
             e->width = ENEMY_WIDTH;
             e->height = ENEMY_HEIGHT;
 
-            // Calcul position : MargeGauche + Col * (Taille + Espace)
+            // Calcul de position : Marge + Index * (Taille + Espace)
             e->x = 5 + col * (ENEMY_WIDTH + 2);
             e->y = 7 + row * (ENEMY_HEIGHT + 2);
 
-            // 3. TYPES SELON LA RANGÉE
+            // 3. TYPES SELON L'ALTITUDE
             if (row == 0)
-                e->type = ENTITY_ENEMY_TYPE_3; // Haut
+                e->type = ENTITY_ENEMY_TYPE_3; // Haut (Calamar)
             else if (row < 3)
-                e->type = ENTITY_ENEMY_TYPE_2; // Milieu
+                e->type = ENTITY_ENEMY_TYPE_2; // Milieu (Crabe)
             else
-                e->type = ENTITY_ENEMY_TYPE_1; // Bas
+                e->type = ENTITY_ENEMY_TYPE_1; // Bas (Pieuvre)
 
             idx++;
         }
     }
 
-    // Paramètres globaux de la vague
+    // Réinitialisation de la logique de groupe (Vague)
     model->enemy_speed_mult = 1.0f;
-    model->direction_enemies = 1; // 1 = Droite, -1 = Gauche
-    model->drop_direction = 1;    // Yo-Yo
+    model->direction_enemies = 1; // Commence vers la Droite
+    model->drop_direction = 1;
     model->drop_step_count = 0;
 
-    // Reset UFO pour être sûr qu'il n'est pas là au début du niveau
+    // L'OVNI est désactivé au début du niveau
     model->ufo.active = false;
     model->ufo.hasSpawnedThisLevel = false;
-    model->ufo.y = 4; // Position fixe en haut
+    model->ufo.y = 4; // Altitude de croisière fixe
 }
 
+/**
+ * @brief Active l'apparition de l'OVNI bonus (Mystery Ship).
+ *
+ * Réinitialise l'entité UFO pour qu'elle soit "neuve" (non explosée)
+ * et détermine aléatoirement son côté d'entrée (Gauche ou Droite).
+ *
+ * @param model Le modèle de jeu.
+ */
 static void spawn_ufo(GameModel *model)
 {
-    // On nettoie l'entité UFO avant de l'activer
-    // Ça évite qu'il garde l'état "explosé" de la fois précédente
+    // 1. NETTOYAGE : Réinitialise les flags d'explosion.
+    // Indispensable si l'OVNI précédent a été détruit (évite d'afficher une explosion dès le spawn).
     model->ufo.exploding = false;
     model->ufo.explode_timer = 0.0f;
+
+    // 2. ACTIVATION
     model->ufo.active = true;
-    model->ufo.hasSpawnedThisLevel = true;
+    model->ufo.hasSpawnedThisLevel = true; // Bloque le spawn multiple par niveau
     model->ufo.type = ENTITY_UFO;
     model->ufo.width = UFO_WIDTH;
     model->ufo.height = UFO_HEIGHT;
-    model->ufo.y = 4;
-    // Pile ou Face pour la direction
+    model->ufo.y = 4; // Altitude fixe (Très haut dans le ciel)
+
+    // 3. DIRECTION ALÉATOIRE
     if (rand() % 2 == 0)
     {
-        model->ufo.x = -UFO_WIDTH; // Part de gauche
-        model->ufo.dx = UFO_SPEED; // Va à droite
+        // Apparition à GAUCHE -> Va à DROITE
+        model->ufo.x = -UFO_WIDTH;
+        model->ufo.dx = UFO_SPEED;
     }
     else
     {
-        model->ufo.x = GAME_WIDTH;  // Part de droite
-        model->ufo.dx = -UFO_SPEED; // Va à gauche
+        // Apparition à DROITE -> Va à GAUCHE
+        model->ufo.x = GAME_WIDTH;
+        model->ufo.dx = -UFO_SPEED;
     }
 }
 // ============================================================================
 //                          3. INITIALISATION & RESET
 // ============================================================================
 
-// Helper : Initialise les boucliers (Factorisé pour ne pas copier-coller)
+/**
+ * @brief Initialise les boucliers de protection du joueur.
+ *
+ * Place les 4 boucliers de manière équidistante sur l'écran,
+ * juste au-dessus du vaisseau du joueur. Chaque bouclier a une santé
+ * initiale définie par SHIELD_MAX_HEALTH.
+ *
+ * @param model Le modèle de jeu contenant le tableau des boucliers.
+ */
 static void init_shields(GameModel *model)
 {
     float shield_w = 8.0f;
@@ -185,6 +234,19 @@ static void init_shields(GameModel *model)
     }
 }
 
+/**
+ * @brief Initialise et alloue un nouveau modèle de jeu.
+ *
+ * Crée la structure GameModel avec tous ses composants initialisés :
+ * - État initial sur le menu principal
+ * - Joueur positionné au centre de l'écran
+ * - Grille d'ennemis créée
+ * - Boucliers mis en place
+ * - Volume audio à 30%
+ *
+ * @return Pointeur vers le GameModel alloué, ou NULL en cas d'échec d'allocation.
+ * @note Le dossier "sauvegardes" est créé s'il n'existe pas.
+ */
 GameModel *model_init(void)
 {
     // 1. Allocation + Mise à zéro automatique (calloc)
@@ -218,6 +280,19 @@ GameModel *model_init(void)
     return model;
 }
 
+/**
+ * @brief Réinitialise complètement une partie de jeu.
+ *
+ * Remet à zéro tous les éléments du jeu pour commencer une nouvelle partie :
+ * - Score remis à 0
+ * - Vies remises à 3
+ * - Niveau remis à 1
+ * - Joueur repositionné au centre
+ * - Ennemis et boucliers recréés
+ * - Toutes les balles supprimées
+ *
+ * @param model Le modèle de jeu à réinitialiser.
+ */
 static void reset_game(GameModel *model)
 {
     // 1. Reset Stats
@@ -252,22 +327,37 @@ static void reset_game(GameModel *model)
     model->state = STATE_PLAYING;
 }
 
+/**
+ * @brief Libère la mémoire allouée pour le modèle de jeu.
+ *
+ * @param model Le modèle de jeu à libérer (peut être NULL).
+ */
 void model_free(GameModel *model)
 {
     if (model)
         free(model);
 }
 
-// Getter (Lecture seule)
-const Entity *model_get_player(const GameModel *model)
-{
-    return &model->player;
-}
-
 // ============================================================================
 //                          5. GESTION DES ENTRÉES (CONTROLLER -> MODEL)
 // ============================================================================
 
+/**
+ * @brief Gère les entrées utilisateur en fonction de l'état actuel du jeu.
+ *
+ * Dispatche les commandes vers la logique appropriée selon l'état du jeu :
+ * - STATE_MENU : Navigation et sélection dans le menu principal
+ * - STATE_LOAD_MENU : Sélection d'une sauvegarde à charger
+ * - STATE_TUTORIAL : Affichage du tutoriel
+ * - STATE_PLAYING : Contrôle du vaisseau et tir
+ * - STATE_PAUSED : Menu pause avec options
+ * - STATE_GAME_OVER : Écran de fin de partie
+ * - STATE_SAVE_* : Gestion des sauvegardes
+ * - STATE_CONFIRM_QUIT : Confirmation avant de quitter
+ *
+ * @param model Le modèle de jeu à mettre à jour.
+ * @param cmd La commande reçue du contrôleur (GameCommand).
+ */
 void model_handle_input(GameModel *model, GameCommand cmd)
 {
     // ---------------------------------------------------------
@@ -306,16 +396,12 @@ void model_handle_input(GameModel *model, GameCommand cmd)
             model->sounds.play_select_sound = true;
 
             if (model->menu_selection == 0)
-                reset_game(model); // JOUER (Utilise reset_game !)
+                reset_game(model);
             else if (model->menu_selection == 1)
                 model->state = STATE_TUTORIAL;
             else if (model->menu_selection == 2)
-            { // CHARGER
-
-                // EST-CE QUE TU AS BIEN CETTE LIGNE ?
+            {
                 model_scan_saves(model);
-
-                // Si tu ne l'as pas, save_file_count garde sa vieille valeur !
                 if (model->save_file_count > 0)
                 {
                     model->state = STATE_LOAD_MENU;
@@ -323,8 +409,6 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 }
                 else
                 {
-                    // Optionnel : Tu peux aussi décider d'aller dans le menu même si c'est vide
-                    // pour voir le message "Pas de sauvegarde".
                     model->state = STATE_LOAD_MENU;
                 }
             }
@@ -342,7 +426,7 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         if (cmd == CMD_EXIT || cmd == CMD_PAUSE)
         {
             model->state = STATE_MENU;
-            model->menu_selection = 2; // Retour sur bouton Charger
+            model->menu_selection = 2;
             return;
         }
 
@@ -371,7 +455,7 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         {
             model->sounds.play_select_sound = true;
             model->state = STATE_MENU;
-            model->menu_selection = 1; // Retour sur bouton Tuto
+            model->menu_selection = 1;
         }
         return;
     }
@@ -445,18 +529,18 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         {
             model->sounds.play_select_sound = true;
             if (model->menu_selection == 0)
-                model->state = STATE_PLAYING; // Reprendre
+                model->state = STATE_PLAYING;
             else if (model->menu_selection == 2)
-            { // Sauvegarder
+            {
                 model_scan_saves(model);
                 model->state = STATE_SAVE_SELECT;
                 model->menu_selection = 0;
             }
             else if (model->menu_selection == 3)
-            { // Quitter sans sauver
+            {
                 model->previous_state = STATE_PAUSED;
                 model->state = STATE_CONFIRM_QUIT;
-                model->menu_selection = 1; // "Non" par défaut
+                model->menu_selection = 1;
             }
         }
         return;
@@ -467,9 +551,6 @@ void model_handle_input(GameModel *model, GameCommand cmd)
     // ---------------------------------------------------------
     if (model->state == STATE_GAME_OVER)
     {
-        // NOTE : J'ai supprimé la vérification du timer (game_over_timer)
-        // pour être sûr que tes touches répondent immédiatement.
-
         // Navigation (0, 1, 2)
         if (cmd == CMD_UP)
             model->menu_selection = (model->menu_selection - 1 < 0) ? 2 : model->menu_selection - 1;
@@ -484,19 +565,16 @@ void model_handle_input(GameModel *model, GameCommand cmd)
 
             if (model->menu_selection == 0)
             {
-                // OPTION 1 : SAUVEGARDER
                 model_scan_saves(model);
                 model->state = STATE_SAVE_SELECT;
                 model->menu_selection = 0;
             }
             else if (model->menu_selection == 1)
             {
-                // OPTION 2 : REJOUER
                 reset_game(model);
             }
             else if (model->menu_selection == 2)
             {
-                // OPTION 3 : QUITTER
                 exit(0);
             }
         }
@@ -514,9 +592,9 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         {
             model->state = STATE_PAUSED;
             return;
-        } // Retour
+        }
 
-        int max = model->save_file_count; // +1 pour "Nouveau" (index 0)
+        int max = model->save_file_count;
         if (cmd == CMD_UP)
             model->menu_selection = (model->menu_selection - 1 < 0) ? max : model->menu_selection - 1;
         if (cmd == CMD_DOWN)
@@ -526,13 +604,12 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         {
             model->sounds.play_select_sound = true;
             if (model->menu_selection == 0)
-            { // Nouveau
+            {
                 model->state = STATE_SAVE_INPUT;
                 model->input_buffer[0] = '\0';
             }
             else
-            { // Écraser existant
-                // On copie le nom sans ".dat" pour l'éditer si besoin
+            {
                 char *f = model->save_files[model->menu_selection - 1];
                 int len = strlen(f) - 4;
                 if (len > 0)
@@ -568,7 +645,7 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 if (save_file_exists(filename))
                 {
                     model->state = STATE_OVERWRITE_CONFIRM;
-                    model->menu_selection = 1; // "Non" par défaut
+                    model->menu_selection = 1;
                 }
                 else
                 {
@@ -578,9 +655,6 @@ void model_handle_input(GameModel *model, GameCommand cmd)
                 }
             }
         }
-        // Note: La saisie des caractères (A-Z) est gérée directement dans model_handle_input
-        // via SDL_TEXTINPUT ou les touches, mais ici tu as géré ça dans view_sdl.c qui remplit input_buffer.
-        // On gère juste Backspace ici si ce n'est pas fait ailleurs.
         if (cmd == CMD_BACKSPACE)
         {
             int l = strlen(model->input_buffer);
@@ -590,9 +664,8 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         return;
     }
 
-    // Étape C : Confirmation Écrasement
     // ---------------------------------------------------------
-    // 9. CONFIRMATION ÉCRASEMENT (Améliorée)
+    // 9. CONFIRMATION ÉCRASEMENT
     // ---------------------------------------------------------
     if (model->state == STATE_OVERWRITE_CONFIRM)
     {
@@ -608,7 +681,6 @@ void model_handle_input(GameModel *model, GameCommand cmd)
 
             if (model->menu_selection == 0)
             {
-                // OPTION 0 : ÉCRASER (L'ancien comportement)
                 char filename[64];
                 snprintf(filename, 64, "%s.dat", model->input_buffer);
 
@@ -618,18 +690,14 @@ void model_handle_input(GameModel *model, GameCommand cmd)
             }
             else
             {
-                // OPTION 1 : CRÉER UNE COPIE (1, 2, 3...)
                 char new_name[128];
                 generate_unique_filename(model->input_buffer, new_name);
-
-                // On sauvegarde avec le nouveau nom (ex: "Partie(1).dat")
-                model_save_named(model, new_name); // Note: new_name contient déjà le .dat
+                model_save_named(model, new_name);
 
                 model->state = STATE_SAVE_SUCCESS;
                 model->save_success_timer = 2.0f;
             }
         }
-        // Touche Echap pour annuler complètement
         else if (cmd == CMD_PAUSE)
         {
             model->state = STATE_SAVE_INPUT;
@@ -651,15 +719,14 @@ void model_handle_input(GameModel *model, GameCommand cmd)
         {
             model->sounds.play_select_sound = true;
             if (model->menu_selection == 0)
-                exit(0); // Quitter
+                exit(0);
             else if (model->menu_selection == 1)
-            { // Retour
-                // On retourne d'où on vient
+            {
                 model->state = (model->previous_state == STATE_GAME_OVER) ? STATE_GAME_OVER : STATE_PAUSED;
                 model->menu_selection = 3;
             }
             else if (model->menu_selection == 2)
-            { // Sauver et Quitter
+            {
                 model_scan_saves(model);
                 model->state = STATE_SAVE_SELECT;
                 model->menu_selection = 0;
@@ -673,6 +740,23 @@ void model_handle_input(GameModel *model, GameCommand cmd)
 //                          6. MISE À JOUR DU MONDE (GAME LOOP)
 // ============================================================================
 
+/**
+ * @brief Met à jour l'état du jeu pour une frame.
+ *
+ * Fonction principale de la boucle de jeu qui gère :
+ * - Les timers (tir, invincibilité, animations)
+ * - Le déplacement du joueur avec contraintes de bords
+ * - Le comportement de l'OVNI (spawn, mouvement, explosion)
+ * - Le déplacement collectif des ennemis (pattern classique)
+ * - La montée de difficulté (accélération progressive)
+ * - Les tirs ennemis aléatoires
+ * - La physique des balles et détection de collisions
+ * - Les transitions de niveau quand tous les ennemis sont éliminés
+ * - Les conditions de Game Over (vies <= 0)
+ *
+ * @param model Le modèle de jeu à mettre à jour.
+ * @param dt Delta time en secondes depuis la dernière frame.
+ */
 void model_update(GameModel *model, double dt)
 {
     // A. ÉTATS SPÉCIAUX
@@ -873,40 +957,25 @@ void model_update(GameModel *model, double dt)
         if (hit_shield)
             continue;
 
-        // --- Collisions Spécifiques ---
         if (b->type == ENTITY_BULLET_PLAYER)
         {
-
-            // 1. VS UFO (COLLISION MANUELLE - C'EST LA CORRECTION !)
             if (model->ufo.active && !model->ufo.exploding)
             {
-                // Vérification collision Rectangle vs Rectangle
                 if (b->x < model->ufo.x + model->ufo.width &&
                     b->x + b->width > model->ufo.x &&
                     b->y < model->ufo.y + model->ufo.height &&
                     b->y + b->height > model->ufo.y)
                 {
-                    // --- IMPACT ---
-                    b->active = false;               // La balle disparaît
-                    model->ufo.exploding = true;     // Déclenche l'image ufoExplosion.bmp
-                    model->ufo.explode_timer = 0.5f; // L'explosion reste 0.5 secondes
-
-                    // --- RÉCOMPENSES ---
-                    model->score += 100; // +100 Points
-                    model->lives++;      // +1 Cœur Bonus !
-
-                    // --- AUDIO ---
-                    // play_invader_killed jouera le son d'explosion
+                    b->active = false;
+                    model->ufo.exploding = true;
+                    model->ufo.explode_timer = 0.5f;
+                    model->score += 100;
+                    model->lives++;
                     model->sounds.play_invader_killed = true;
-
-                    // Note: Le son de boucle (ufoSound.wav) s'arrêtera tout seul
-                    // car ufo_loopING regarde si (!model->ufo.exploding) plus haut dans le code.
-
-                    continue; // On passe à la balle suivante
+                    continue;
                 }
             }
 
-            // 2. VS ENNEMIS
             for (int e = 0; e < MAX_ENEMIES; e++)
             {
                 if (model->enemies[e].active && !model->enemies[e].exploding && check_collision(b, &model->enemies[e]))
@@ -923,7 +992,6 @@ void model_update(GameModel *model, double dt)
         }
         else
         {
-            // 3. VS JOUEUR
             if (model->player.active && model->hit_timer <= 0 && check_collision(b, &model->player))
             {
                 b->active = false;
@@ -947,7 +1015,16 @@ void model_update(GameModel *model, double dt)
 //                          7. GESTION DES FICHIERS (SAUVEGARDE / CHARGEMENT)
 // ============================================================================
 
-// 1. Lister les sauvegardes disponibles
+/**
+ * @brief Scanne le dossier de sauvegardes et remplit la liste des fichiers disponibles.
+ *
+ * Parcourt le répertoire "sauvegardes/" et collecte tous les fichiers
+ * avec l'extension ".dat". Les noms sont stockés dans model->save_files[]
+ * et le compteur model->save_file_count est mis à jour.
+ *
+ * @param model Le modèle de jeu dont la liste de sauvegardes sera mise à jour.
+ * @note Limite de MAX_SAVE_FILES fichiers maximum.
+ */
 void model_scan_saves(GameModel *model)
 {
     model->save_file_count = 0;
@@ -978,7 +1055,16 @@ void model_scan_saves(GameModel *model)
     closedir(d);
 }
 
-// 2. Sauvegarder l'état actuel
+/**
+ * @brief Sauvegarde l'état actuel du jeu dans un fichier binaire.
+ *
+ * Écrit la structure GameModel complète dans un fichier du dossier
+ * "sauvegardes/". La sauvegarde est effectuée en mode binaire (dump mémoire).
+ *
+ * @param model Le modèle de jeu à sauvegarder.
+ * @param filename Le nom du fichier de sauvegarde (ex: "partie1.dat").
+ * @note Le dossier "sauvegardes" est créé automatiquement s'il n'existe pas.
+ */
 void model_save_named(const GameModel *model, const char *filename)
 {
     // On s'assure que le dossier existe (Linux : 0777 = permissions complètes)
@@ -987,10 +1073,9 @@ void model_save_named(const GameModel *model, const char *filename)
     char path[128];
     snprintf(path, sizeof(path), "sauvegardes/%s", filename);
 
-    FILE *f = fopen(path, "wb"); // Mode binaire
+    FILE *f = fopen(path, "wb");
     if (f)
     {
-        // On écrit toute la structure d'un coup (Dump mémoire)
         fwrite(model, sizeof(GameModel), 1, f);
         fclose(f);
         printf("[SYSTEM] Sauvegarde reussie : %s\n", path);
@@ -1001,37 +1086,36 @@ void model_save_named(const GameModel *model, const char *filename)
     }
 }
 
-// 3. Charger une sauvegarde
+/**
+ * @brief Charge une sauvegarde depuis un fichier binaire.
+ *
+ * Lit le fichier spécifié et restaure l'état complet du jeu.
+ * Après le chargement, l'état est automatiquement mis sur STATE_PLAYING
+ * et les timers visuels sont réinitialisés.
+ *
+ * @param model Le modèle de jeu à restaurer.
+ * @param filename Le nom du fichier de sauvegarde (ex: "partie1.dat").
+ * @return true si le chargement a réussi, false sinon (fichier inexistant ou corrompu).
+ */
 bool model_load_named(GameModel *model, const char *filename)
 {
     char path[128];
     snprintf(path, sizeof(path), "sauvegardes/%s", filename);
 
-    FILE *f = fopen(path, "rb"); // Mode binaire
+    FILE *f = fopen(path, "rb");
     if (!f)
         return false;
 
     GameModel temp;
-    // On lit le fichier dans une variable temporaire pour vérifier l'intégrité
     size_t res = fread(&temp, sizeof(GameModel), 1, f);
     fclose(f);
 
     if (res == 1)
     {
-        // Copie brutale de la mémoire : On remplace l'état actuel par celui du fichier
         *model = temp;
-
-        // --- FORÇAGE DE L'ÉTAT ---
-        // On veut reprendre le jeu tout de suite, pas être en pause
         model->state = STATE_PLAYING;
-
-        // Reset des timers visuels pour éviter des glitchs
         model->hit_timer = 0;
-
-        // On s'assure que le son est coupé ou reset (les pointeurs audio sont gérés par la Vue, pas le Modèle)
-        // Mais on reset les flags de sons "One Shot" pour ne pas entendre un vieux bruit
         memset(&model->sounds, 0, sizeof(SoundState));
-
         printf("[SYSTEM] Chargement reussi : %s\n", path);
         return true;
     }

@@ -1,40 +1,61 @@
-##########################################
-##		PRE-REQUIS		##
-##########################################
+================================================================================
+                         SPACE INVADERS - GUIDE D'INSTALLATION
+================================================================================
 
-Paquets sources dans le dossier "3rdParty" :
-- SDL3_ttf
-- SDL3_mixer
-- SDL3_image
-- SDL3
+--------------------------------------------------------------------------------
+1. PRÉ-REQUIS SYSTÈME
+--------------------------------------------------------------------------------
 
-S'assurer d'avoir les droits d'exécution
-pour les scripts projet (chmod u+x <fichier>) :
-- clean.sh
-- build.sh
+Les bibliothèques suivantes sont incluses dans le dossier "3rdParty/" :
+    - SDL3        (rendu graphique)
+    - SDL3_image  (chargement d'images)
+    - SDL3_mixer  (gestion audio)
+    - SDL3_ttf    (rendu de polices)
 
-##########################################
-##		COMPILATION		##
-##########################################
+--------------------------------------------------------------------------------
+2. PRÉPARATION
+--------------------------------------------------------------------------------
 
-Il faut compiler les librairies SDL3 dans
-le dossier "3rdParty". Si ce n'est pas déjà
-fait, il est mieux de nettoyer les précédentes
-compilations avec l'exécutable "clean.sh".
+Assurez-vous que les scripts ont les droits d'exécution :
 
-Ensuite, la compilation se fera avec le
-script "build.sh".
+    chmod +x build.sh clean.sh
 
-##########################################
-##              LANCEMENT	        ##
-##########################################
+--------------------------------------------------------------------------------
+3. COMPILATION
+--------------------------------------------------------------------------------
 
-L'exécutable produit avec la commande "make"
-exécuté par le script "build.sh" précédemment
-se trouve dans le dossier "build" et se nomme
-"breakout".
+Option A : Première installation (recommandé)
+    
+    ./build.sh
 
-Les instructions d'exécution sont les suivantes
-en étant à la racine du projet :
+    Ce script compile automatiquement :
+    1. Les bibliothèques SDL3 (si pas déjà compilées)
+    2. Le Space Invaders
 
-./build/breakout
+Option B : Recompilation après modification du code
+
+    make
+
+Option C : Nettoyage complet et recompilation
+
+    ./clean.sh    # Supprime tous les fichiers compilés
+    ./build.sh    # Recompile tout depuis zéro
+
+--------------------------------------------------------------------------------
+4. LANCEMENT
+--------------------------------------------------------------------------------
+
+    make run-sdl          # Mode SDL (graphique, par défaut)
+    make run-ncurses      # Mode terminal (ncurses)
+
+--------------------------------------------------------------------------------
+5. COMMANDES EN JEU
+--------------------------------------------------------------------------------
+
+    Flèches Gauche/Droite   : Déplacer le vaisseau
+    Espace                  : Tirer
+    P / Échap               : Pause
+    Q                       : Quitter
+    Entrée                  : Valider (menus)
+    F11                     : Plein écran (mode SDL)
+

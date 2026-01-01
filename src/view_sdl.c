@@ -1,3 +1,11 @@
+/**
+ * @file view_sdl.c
+ * @brief Implémentation de la vue graphique avec SDL3.
+ *
+ * Ce fichier gère l'affichage du jeu Space Invaders en mode graphique
+ * en utilisant SDL3 pour le rendu, SDL_ttf pour les polices et SDL_mixer pour l'audio.
+ */
+
 #include "view_sdl.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +24,15 @@ static float SCALE_Y = 1.0f;
 // 2. FONCTIONS UTILITAIRES (HELPERS DE BASE)
 // ============================================================================
 
+/**
+ * @brief Charge une image depuis un fichier et crée une texture SDL.
+ *
+ * Gère automatiquement la transparence pour les images sans canal alpha
+ * en utilisant le noir (0,0,0) comme couleur clé.
+ *
+ * @param path Chemin vers le fichier image (BMP, PNG, etc.).
+ * @return Pointeur vers la texture SDL créée, ou NULL en cas d'échec.
+ */
 static SDL_Texture *load_texture(const char *path)
 {
     SDL_Surface *surface = IMG_Load(path);
@@ -37,6 +54,14 @@ static SDL_Texture *load_texture(const char *path)
     return tex;
 }
 
+/**
+ * @brief Affiche du texte à une position donnée avec la police par défaut.
+ *
+ * @param text Le texte à afficher.
+ * @param x Position horizontale en pixels.
+ * @param y Position verticale en pixels.
+ * @param color Couleur du texte (SDL_Color).
+ */
 static void draw_text(const char *text, int x, int y, SDL_Color color)
 {
     if (!ctx.font || !text || !text[0])
@@ -54,6 +79,14 @@ static void draw_text(const char *text, int x, int y, SDL_Color color)
     SDL_DestroySurface(s);
 }
 
+/**
+ * @brief Affiche du texte centré horizontalement avec une police spécifique.
+ *
+ * @param text Le texte à afficher.
+ * @param y Position verticale en pixels.
+ * @param color Couleur du texte (SDL_Color).
+ * @param font Police TTF à utiliser pour le rendu.
+ */
 static void draw_text_centered(const char *text, int y, SDL_Color color, TTF_Font *font)
 {
     if (!font || !text || !text[0])
@@ -72,6 +105,20 @@ static void draw_text_centered(const char *text, int y, SDL_Color color, TTF_Fon
     SDL_DestroySurface(s);
 }
 
+/**
+ * @brief Dessine une entité du jeu avec mise à l'échelle et décalage optionnel.
+ *
+ * Convertit les coordonnées du modèle de jeu en pixels écran
+ * et applique un décalage pour les effets de tremblement.
+ *
+ * @param tex Texture SDL de l'entité.
+ * @param x Position X dans le modèle de jeu.
+ * @param y Position Y dans le modèle de jeu.
+ * @param w Largeur dans le modèle de jeu.
+ * @param h Hauteur dans le modèle de jeu.
+ * @param shake_x Décalage horizontal pour l'effet de tremblement.
+ * @param shake_y Décalage vertical pour l'effet de tremblement.
+ */
 static void draw_entity_scaled(SDL_Texture *tex, float x, float y, float w, float h, int shake_x, int shake_y)
 {
     if (!tex)
@@ -80,6 +127,13 @@ static void draw_entity_scaled(SDL_Texture *tex, float x, float y, float w, floa
     SDL_RenderTexture(ctx.renderer, tex, NULL, &dst);
 }
 
+/**
+ * @brief Dessine un overlay semi-transparent noir sur tout l'écran.
+ *
+ * Utilisé pour assombrir le fond lors des menus et popups.
+ *
+ * @param alpha Niveau d'opacité (0 = transparent, 255 = opaque).
+ */
 static void draw_overlay(int alpha)
 {
     SDL_SetRenderDrawBlendMode(ctx.renderer, SDL_BLENDMODE_BLEND);
@@ -92,6 +146,18 @@ static void draw_overlay(int alpha)
 // 3. FONCTIONS DE RENDU INTERMÉDIAIRES
 // ============================================================================
 
+/**
+ * @brief Met à jour l'état audio selon l'état du jeu.
+ *
+ * Gère la lecture des sons et musiques :
+ * - Pause/reprise selon l'état du jeu
+ * - Volume et mute
+ * - Sons ponctuels (tir, explosion, etc.)
+ * - Musique de fond et boucle UFO
+ *
+ * @param model Le modèle de jeu en lecture seule.
+ * @param mutable_model Pointeur modifiable pour réinitialiser les flags sonores.
+ */
 static void update_audio_state(const GameModel *model, GameModel *mutable_model)
 {
     if (!ctx.mixer)
@@ -176,6 +242,14 @@ static void update_audio_state(const GameModel *model, GameModel *mutable_model)
     }
 }
 
+/**
+ * @brief Dessine l'interface utilisateur en jeu (HUD).
+ *
+ * Affiche le score, le niveau et les vies restantes (cœurs).
+ * Les cœurs bonus au-delà de la limite normale sont colorés en or.
+ *
+ * @param model Le modèle de jeu contenant les informations à afficher.
+ */
 static void draw_hud(const GameModel *model)
 {
     char buf[64];
@@ -200,6 +274,20 @@ static void draw_hud(const GameModel *model)
     }
 }
 
+/**
+ * @brief Dessine le monde de jeu complet.
+ *
+ * Affiche tous les éléments du jeu avec effets visuels :
+ * - Fond de jeu
+ * - Joueur (avec clignotement rouge quand touché)
+ * - Ennemis (avec animations et couleurs par type)
+ * - UFO (avec effet d'explosion)
+ * - Boucliers (avec états de dégradation)
+ * - Balles (joueur et ennemis)
+ * - Effet de tremblement d'écran quand le joueur est touché
+ *
+ * @param model Le modèle de jeu contenant l'état du monde.
+ */
 static void draw_game_world(const GameModel *model)
 {
     int sx = 0, sy = 0;
@@ -289,6 +377,14 @@ static void draw_game_world(const GameModel *model)
 // 4. FONCTIONS PRINCIPALES (INTERFACE)
 // ============================================================================
 
+/**
+ * @brief Initialise SDL et charge toutes les ressources graphiques et audio.
+ *
+ * Configure la fenêtre, le renderer, charge les textures (sprites, fonds,
+ * explosions, boucliers), les polices et les sons.
+ *
+ * @return true si l'initialisation a réussi, false sinon.
+ */
 static bool sdl_init(void)
 {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_AUDIO))
@@ -380,6 +476,12 @@ static bool sdl_init(void)
     return true;
 }
 
+/**
+ * @brief Libère toutes les ressources SDL et ferme proprement.
+ *
+ * Détruit les textures, les pistes audio, les polices,
+ * le renderer et la fenêtre, puis quitte SDL.
+ */
 static void sdl_close(void)
 {
     if (ctx.sfx.ufo_track)
@@ -445,6 +547,21 @@ static void sdl_close(void)
     SDL_Quit();
 }
 
+/**
+ * @brief Effectue le rendu complet d'une frame.
+ *
+ * Dessine l'écran approprié selon l'état du jeu :
+ * - STATE_PLAYING : monde de jeu + HUD
+ * - STATE_MENU : menu principal avec options
+ * - STATE_PAUSED : jeu en arrière-plan + menu pause
+ * - STATE_GAME_OVER : écran de fin avec score
+ * - STATE_CONFIRM_QUIT : popup de confirmation
+ * - STATE_SAVE_* : interfaces de sauvegarde
+ * - STATE_LOAD_MENU : menu de chargement
+ * - STATE_TUTORIAL : écran d'aide
+ *
+ * @param model Le modèle de jeu contenant l'état à afficher.
+ */
 static void sdl_render(const GameModel *model)
 {
     update_audio_state(model, (GameModel *)model);
@@ -584,25 +701,20 @@ static void sdl_render(const GameModel *model)
         }
         else
         {
-            // Fond semi-transparent noir pour faire ressortir le popup
             SDL_SetRenderDrawColor(ctx.renderer, 0, 0, 0, 200);
             SDL_FRect overlay = {0, 0, WIN_WIDTH, WIN_HEIGHT};
             SDL_RenderFillRect(ctx.renderer, &overlay);
 
-            // TITRE
             draw_text_centered("CE FICHIER EXISTE DEJA !", WIN_HEIGHT / 2 - 100, (SDL_Color){255, 165, 0, 255}, ctx.font);
 
-            // Nom du fichier concerné
             char buf[128];
             snprintf(buf, sizeof(buf), "Fichier : '%s.dat'", model->input_buffer);
             draw_text_centered(buf, WIN_HEIGHT / 2 - 50, COL_WHITE, ctx.font);
 
-            // OPTION 0 : ÉCRASER (Rouge = Danger)
             SDL_Color col0 = (model->menu_selection == 0) ? (SDL_Color){255, 0, 0, 255} : (SDL_Color){128, 128, 128, 255};
             const char *txt0 = (model->menu_selection == 0) ? "> ECRASER L'ANCIEN <" : "  ECRASER L'ANCIEN  ";
             draw_text_centered(txt0, WIN_HEIGHT / 2 + 30, col0, ctx.font);
 
-            // OPTION 1 : CRÉER COPIE (Vert = Sûr)
             SDL_Color col1 = (model->menu_selection == 1) ? (SDL_Color){0, 255, 0, 255} : (SDL_Color){128, 128, 128, 255};
             const char *txt1 = (model->menu_selection == 1) ? "> CREER UNE COPIE (1..) <" : "  CREER UNE COPIE (1..)  ";
             draw_text_centered(txt1, WIN_HEIGHT / 2 + 80, col1, ctx.font);
@@ -644,6 +756,19 @@ static void sdl_render(const GameModel *model)
     SDL_RenderPresent(ctx.renderer);
 }
 
+/**
+ * @brief Récupère et traduit les événements SDL en commandes de jeu.
+ *
+ * Gère plusieurs modes :
+ * - Mode saisie (STATE_SAVE_INPUT) : capture les caractères alphanumériques
+ * - Mode jeu : détection continue des touches pour le mouvement fluide
+ * - Mode menu : événements ponctuels pour la navigation
+ *
+ * Supporte également le plein écran (F11) et la fermeture de fenêtre.
+ *
+ * @param model Le modèle de jeu (pour connaître l'état et le buffer de saisie).
+ * @return La commande GameCommand correspondant à l'entrée utilisateur.
+ */
 static GameCommand sdl_get_input(GameModel *model)
 {
     SDL_Event e;
