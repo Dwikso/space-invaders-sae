@@ -85,11 +85,11 @@ all: dirs $(TARGET)
 
 ## @brief Compile et lance le jeu en mode terminal (ncurses).
 run-ncurses: all
-	@./$(TARGET) --ncurses
+	@./$(TARGET) ncurses
 
 ## @brief Compile et lance le jeu en mode graphique (SDL3).
 run-sdl: all
-	@./$(TARGET)
+	@./$(TARGET) sdl
 
 ## @brief Édition des liens : génère l'exécutable final.
 $(TARGET): $(OBJS)

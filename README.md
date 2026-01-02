@@ -3,6 +3,7 @@
 > Implémentation moderne du classique Space Invaders en C avec architecture MVC et double interface (ncurses/SDL3)
 
 ![C](https://img.shields.io/badge/Language-C99-blue)
+![ncurses](https://img.shields.io/badge/Graphics-ncurses-blue)
 ![SDL3](https://img.shields.io/badge/Graphics-SDL3-green)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
@@ -13,12 +14,12 @@
 - [Aperçu](#-aperçu)
 - [Description](#-description)
 - [Caractéristiques](#-caractéristiques)
-- [Architecture MVC](#-architecture-mvc)
+- [Architecture MVC](#️-architecture-mvc)
 - [Prérequis](#-prérequis)
 - [Installation](#-installation)
 - [Compilation](#-compilation)
 - [Lancement du jeu](#-lancement-du-jeu)
-- [Commandes](#-commandes)
+- [Commandes](#️-commandes)
 - [Structure du projet](#-structure-du-projet)
 - [Système de sauvegarde](#-système-de-sauvegarde)
 - [Documentation](#-documentation)
@@ -38,19 +39,12 @@
 
 ## 🎯 Description
 
-Space Invaders MVC est une réimplémentation fidèle du jeu d'arcade classique **Space Invaders** (1978), développée en C avec une architecture **Modèle-Vue-Contrôleur** stricte.
+Space Invaders MVC est une réimplémentation fidèle du jeu d'arcade classique **Space Invaders** , développée en C avec une architecture **Modèle-Vue-Contrôleur** stricte.
 
 Le projet propose **deux modes d'affichage interchangeables** :
 
-- **SDL3** : Interface graphique moderne avec sprites, animations et effets sonores (par défaut)
+- **SDL3** : Interface graphique moderne avec sprites, animations et effets sonores
 - **ncurses** : Interface texte ASCII jouable directement dans le terminal
-
-### Objectifs pédagogiques
-
-- Démonstration d'une architecture MVC propre en C
-- Séparation stricte entre logique métier et rendu graphique
-- Double implémentation d'interface via polymorphisme en C
-- Système de sauvegarde/chargement binaire
 
 ---
 
@@ -61,10 +55,12 @@ Le projet propose **deux modes d'affichage interchangeables** :
 - ✅ **3 types d'ennemis** avec scores différents (10/20/30 points)
 - ✅ **OVNI mystère** apparaissant aléatoirement (100 points + vie bonus)
 - ✅ **4 boucliers destructibles** avec 10 états de dégradation
-- ✅ **Système de vies** avec indicateur visuel (cœurs)
+- ✅ **Système de vies** avec indicateur visuel (cœurs en sdl)
 - ✅ **Progression par niveaux** avec augmentation de difficulté
 - ✅ **Animations** : sprites alternés, explosions, tremblements d'écran
-- ✅ **Rythme alien** : son accélérant avec la tension
+- ✅ **Son** : bruitages tir/explosion, musique de fond cyclique
+- ✅ **Menu complet** : Nouveau jeu, Charger, Options, Quitter
+- ✅ **Pause en jeu** avec options Sauvegarder/Quitter
 
 ### Technique
 
@@ -72,7 +68,7 @@ Le projet propose **deux modes d'affichage interchangeables** :
 - 💾 **Système de sauvegarde** complet avec gestion de fichiers
 - 🎵 **Audio SDL_mixer** : bruitages, musiques, boucles
 - 🎨 **Sprites animés** : 4 frames pour projectiles, 2 pour ennemis
-- ⚡ **Boucle de jeu fixe** à 60 FPS avec delta time
+- ⚡ **Boucle de jeu fixe** à 60 FPS avec delta time (le delta time sert a rendre la vitesse du jeu indépendante de la vitesse du processeur.)
 - 🔧 **Responsive** : Adaptation automatique à la taille de la fenêtre/terminal
 
 ---
@@ -81,7 +77,7 @@ Le projet propose **deux modes d'affichage interchangeables** :
 
 Le projet suit strictement le pattern **Modèle-Vue-Contrôleur** :
 
-```
+```plantext
 ┌─────────────────────────────────────────────┐
 │              MAIN (main.c)                  │
 │         Boucle de jeu principale            │
@@ -107,7 +103,7 @@ Le projet suit strictement le pattern **Modèle-Vue-Contrôleur** :
 #### **Modèle** (`src/model.c`)
 
 - État du jeu (score, vies, niveau)
-- Physique des entités (positions, vitesses, collisions AABB)
+- Physique des entités (positions, vitesses, collisions)
 - Règles métier (game over, level up, spawning UFO/ennemis)
 - Système de sauvegarde/chargement binaire
 - **⚠️ Ne connaît PAS la vue** : aucune dépendance graphique
@@ -136,13 +132,19 @@ Le projet suit strictement le pattern **Modèle-Vue-Contrôleur** :
 sudo apt install build-essential cmake libncurses-dev
 ```
 
+```bash
+# Fedora
+sudo dnf install gcc gcc-c++ make cmake ncurses-devel
+```
+
 ### Bibliothèques incluses (dossier 3rdParty/)
 
 Les bibliothèques SDL3 sont fournies avec le projet :
+
 - **SDL3** : Rendu graphique
 - **SDL3_image** : Chargement d'images BMP
 - **SDL3_mixer** : Gestion audio
-- **SDL3_ttf** : Rendu de polices TrueType
+- **SDL3_ttf** : Rendu de polices
 
 ---
 
@@ -172,6 +174,7 @@ chmod +x build.sh clean.sh
 ```
 
 Ce script :
+
 1. Compile les bibliothèques SDL3 (si nécessaire)
 2. Compile le projet Space Invaders
 
@@ -183,7 +186,7 @@ Ce script :
 
 Supprime tous les fichiers compilés (bibliothèques + projet).
 
-### Recompilation rapide (après modification du code)
+### Recompilation rapide
 
 ```bash
 make
@@ -197,10 +200,10 @@ L'exécutable se trouve dans le dossier `build/` :
 
 ```bash
 # Mode SDL (graphique, par défaut)
-./space_invaders
+make run-sdl
 
 # Mode ncurses (terminal)
-./space_invaders --ncurses
+make run-ncurses
 ```
 
 **💡 Astuce SDL :** Appuyez sur **F11** pour basculer en plein écran.
@@ -216,19 +219,19 @@ L'exécutable se trouve dans le dossier `build/` :
 | Touche                  | Action                               |
 | ----------------------- | ------------------------------------ |
 | **↑ / ↓**               | Naviguer dans les menus              |
-| **← / →**               | Ajuster le volume                    |
+| **← / →**               | Ajuster le volume    (SDL uniquement)|
 | **ESPACE** / **ENTRÉE** | Valider la sélection                 |
 | **P** / **ÉCHAP**       | Pause / Retour                       |
 | **F11**                 | Plein écran (SDL uniquement)         |
 
 ### En jeu
 
-| Touche     | Action               |
-| ---------- | -------------------- |
-| **← →**    | Déplacer le vaisseau |
-| **ESPACE** | Tirer                |
-| **P**      | Pause                |
-| **ÉCHAP**  | Menu pause           |
+| Touche         | Action               |
+| -------------- | -------------------- |
+| **←/→**        | Déplacer le vaisseau |
+| **ESPACE**     | Tirer                |
+| **P**/**Echap**| Pause                |
+| **Q**          | Quitter              |
 
 ### Saisie de texte (sauvegarde)
 
@@ -244,28 +247,32 @@ L'exécutable se trouve dans le dossier `build/` :
 
 ## 📁 Structure du projet
 
-```
+``` plantext
 space-invaders/
 │
-├── assets/                    # Ressources graphiques/audio
-│   ├── aliens/               # Sprites ennemis (A1/A2/A3, UFO)
+├── 3rdParty/               # Bibliothèques externes (incluses)
+│   ├── SDL3/                 # SDL3 principal
+│   ├── SDL3_image/           # Chargement d'images
+│   ├── SDL3_mixer/           # Gestion audio
+│   └── SDL3_ttf/             # Rendu de texte 
+│
+├── assets/                 # Ressources graphiques/audio
+│   ├── aliens/               # Sprites (A1/A2/A3, UFO,Player)
+│   ├── audio/                # Sons (shoot, explosion, UFO, beats)
 │   ├── backgrounds/          # Fonds d'écran (menu, jeu)
 │   ├── explosions/           # Animations d'explosion
 │   ├── fonts/                # Police TTF
 │   ├── hearts/               # Icônes de vie (full/empty)
 │   ├── missiles/             # Projectiles joueur (4 frames)
-│   ├── projectiles/          # Projectiles ennemis (4 frames)
-│   ├── shelter/              # Boucliers (10 états de dégâts)
 │   ├── preview/              # Captures d'écran pour le README
-│   └── audio/                # Sons (shoot, explosion, UFO, beats)
+│   ├── projectiles/          # Projectiles ennemis (4 frames)
+│   └──  shelter/             # Boucliers (10 états de dégâts)
 │
-├── 3rdParty/                  # Bibliothèques externes (incluses)
-│   ├── SDL3/                 # SDL3 principal
-│   ├── SDL3_image/           # Chargement d'images
-│   ├── SDL3_ttf/             # Rendu de texte TrueType
-│   └── SDL3_mixer/           # Gestion audio
+├── build/                 # Fichiers compilés (.o, exécutable)
 │
-├── include/                  # Headers (.h)
+├── docs/                  # Documentation Doxygen générée
+│
+├── include/               # Headers (.h)
 │   ├── common.h             # Constantes globales (GAME_WIDTH, FPS...)
 │   ├── controller.h         # Commandes abstraites (GameCommand)
 │   ├── model.h              # Structures de données (GameModel, Entity...)
@@ -274,24 +281,20 @@ space-invaders/
 │   ├── view_ncurses.h       # Implémentation ncurses
 │   └── view_sdl.h           # Implémentation SDL3
 │
-├── src/                      # Sources (.c)
+├── sauvegardes/            # Dossier des sauvegardes (.dat)
+│
+├── src/                    # Sources (.c)
 │   ├── main.c               # Point d'entrée + boucle de jeu
-│   ├── model.c              # Logique métier (update, collisions, IA)
+│   ├── model.c              # Logique métier (update, collisions ...)
 │   ├── utils.c              # Implémentation utilitaires
 │   ├── view_ncurses.c       # Rendu terminal
 │   └── view_sdl.c           # Rendu graphique SDL3
 │
-├── sauvegardes/             # Dossier des sauvegardes (.dat)
-├── build/                   # Fichiers compilés (.o, exécutable)
-├── docs/                    # Documentation Doxygen générée
-│   ├── html/               # Documentation HTML
-│   └── latex/              # Documentation LaTeX
-│
-├── Makefile                 # Script de compilation
 ├── build.sh                 # Script de build automatique
 ├── clean.sh                 # Script de nettoyage
 ├── Doxyfile                 # Configuration Doxygen
 ├── INSTALL.txt              # Instructions d'installation détaillées
+├── Makefile                 # Script de compilation
 └── README.md                # Ce fichier
 ```
 
@@ -331,7 +334,7 @@ Les sauvegardes sont stockées dans le dossier `sauvegardes/` au format binaire 
 #### Écraser une sauvegarde
 
 - Le système détecte les noms existants et demande confirmation
-- Option alternative : **"NON (dupliquer et renommer)"**
+- Options : Ecraser l'ancien ou Creer une copie (..1) (par exemple sauvegarde1.dat si sauvegarde.dat existe et que vous ne voulez pas écraser la sauvegarde existante)
 
 ---
 
@@ -369,41 +372,8 @@ Ce script compile automatiquement toutes les bibliothèques SDL3 depuis le dossi
 
 **Solution :**
 
-```bash
-# Redimensionner manuellement ou forcer :
-resize -s 24 80
-
-# Ou agrandir la fenêtre du terminal
-```
-
-### Problème : `Son coupé / pas de musique` (SDL)
-
-**Cause :** SDL_mixer non initialisé ou fichiers audio absents.
-
-**Solution :**
-
-```bash
-# Vérifier la présence des sons
-ls -l assets/audio/
-
-# Recompiler avec logs :
-make clean
-make 2>&1 | grep -i "audio\|mixer"
-```
-
-### Problème : `Sprites noirs / transparence cassée`
-
-**Cause :** Le Color Key n'est pas appliqué (SDL3).
-
-**Solution :** Les fichiers BMP doivent avoir un fond **noir pur** (RGB 0,0,0). Le code applique automatiquement la transparence sur cette couleur.
-
-### Problème : `Erreur de segmentation`
-
-**Solution :**
-
-```bash
-# Compiler en mode debug et exécuter avec Valgrind
-valgrind --leak-check=full ./space_invaders
+```plantext
+Agrandir la fenêtre du terminal
 ```
 
 ### Problème : `Make ou GCC non trouvé`
@@ -420,14 +390,34 @@ sudo dnf groupinstall "Development Tools" && sudo dnf install cmake
 
 ---
 
+## 👤 Auteurs (Groupe 7)
+
+## Chamseddine Adaadour & Quentin Pellosse
+
+- 🌐 GitHub : [@Dwikso](https://github.com/Dwikso) & [@chamse22ine](https://github.com/chamse22ine)
+
+---
+
+## Credits & Attributions
+
+### Audio
+
+- Background music: [Game Music Loop 7](https://pixabay.com/sound-effects/game-music-loop-7-145285/) - Licensed under [Licence Pixabay](https://pixabay.com/service/license-summary/) (royalty-free, no attribution required)
+- Level UP sound: [Level Up](https://pixabay.com/sound-effects/level-up-enhancement-8-bit-retro-sound-effect-153002/) - Licensed under [Licence Pixabay](https://pixabay.com/service/license-summary/) (royalty-free, no attribution required)
+- GameOver sound: [Arcade game over](https://www.youtube.com/watch?v=FVJJKIJWKdc)
+- Sprites : [Source](https://www.classicgaming.cc/classics/space-invaders/graphics) - [licence]
+- Sound effects: [Source](https://www.classicgaming.cc/classics/space-invaders/sounds) - [licence]
+
+---
+
 ## 📜 Licence
 
 Ce projet est sous licence **MIT**. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
 
-```
+``` plantext
 MIT License
 
-Copyright (c) 2024-2025 Chamseddine Adaadour & Quentin Pellosse
+Copyright (c) 2025-2026 Chamseddine Adaadour & Quentin Pellosse
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -447,34 +437,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
-
----
-
-## 👤 Auteurs
-
-**Chamseddine Adaadour & Quentin Pellosse**
-
-- 🌐 GitHub : [@Dwikso](https://github.com/Dwikso) & [@chamse22ine](https://github.com/chamse22ine)
-
----
-
-## 🎓 Remerciements
-
-- **Tomohiro Nishikado** - Créateur original de Space Invaders (1978)
-- **SDL Team** - Bibliothèque SDL3
-- **Communauté ncurses** - Gestion terminal
-
----
-
-## 📚 Ressources
-
-### Documentation technique
-
-- [SDL3 Wiki](https://wiki.libsdl.org/SDL3/FrontPage)
-- [Ncurses HOWTO](https://tldp.org/HOWTO/NCURSES-Programming-HOWTO/)
-- [Architecture MVC en C](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller)
-
-### Tutoriels Space Invaders
-
-- [Guide Gameplay Original](https://en.wikipedia.org/wiki/Space_Invaders)
-- [Analyse Technique (Patterns)](https://www.gamedeveloper.com/design/space-invaders-design-patterns)
