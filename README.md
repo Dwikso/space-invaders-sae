@@ -422,7 +422,7 @@ SOFTWARE.
 
 ---
 
-## Credits
+## 🎵 Credits
 
 ### Audio
 
