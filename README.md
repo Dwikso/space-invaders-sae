@@ -25,7 +25,7 @@
 - [Documentation](#-documentation)
 - [Dépannage](#-dépannage)
 - [Licence](#-licence)
-- [Credits](#credits)
+- [Credits](#-credits)
 - [Auteurs](#-auteurs-groupe-7)
 
 ---
