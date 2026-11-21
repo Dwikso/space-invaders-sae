@@ -1,0 +1,8 @@
+# Fichiers objets et binaires compilés
+build/
+*.o
+*.gch
+space_invaders
+
+# Builds CMake des dépendances (générés par build.sh)
+3rdParty/*/build/
